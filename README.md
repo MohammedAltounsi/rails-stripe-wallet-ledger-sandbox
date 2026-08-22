@@ -84,6 +84,8 @@ transaction. The rules it enforces:
 4. Money is integer halalas. No floats anywhere in the money path.
 5. Postgres has the final say. A deferred trigger rejects any unbalanced entry or negative wallet balance, even if the app has a bug.
 
+For the reasoning behind each decision and what would change at scale, see [ARCHITECTURE.md](ARCHITECTURE.md).
+
 ## Paying by card
 
 ```mermaid
