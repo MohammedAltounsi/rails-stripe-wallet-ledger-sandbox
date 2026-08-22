@@ -5,7 +5,7 @@ services:
   - type: web
     name: dallah-coffee
     runtime: docker
-    plan: free
+    plan: starter              # always-on (no cold starts) for the live showcase
     region: frankfurt          # closest Render region to Saudi Arabia
     healthCheckPath: /up
     autoDeploy: true
@@ -13,7 +13,7 @@ services:
       # Thruster listens on the port Render routes to.
       - key: HTTP_PORT
         value: 10000
-      # One Puma worker fits the free tier's 512 MB.
+      # One Puma worker fits the Starter instance's 512 MB.
       - key: WEB_CONCURRENCY
         value: 1
       - key: RAILS_MAX_THREADS
