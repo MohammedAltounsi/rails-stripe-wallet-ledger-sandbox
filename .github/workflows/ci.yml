@@ -26,3 +26,44 @@ jobs:
         run: |
           bundle exec bundle-audit update
           bundle exec bundle-audit check
+
+  test:
+    name: Tests (PostgreSQL)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: dallah_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      RAILS_ENV: test
+      # Runs the suite on Postgres so the wallet row-lock + overdraft/balance
+      # triggers (Postgres-only) are actually exercised, not skipped as on SQLite.
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/dallah_test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install libpq (for the pg gem)
+        run: sudo apt-get update && sudo apt-get install -y libpq-dev
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: .ruby-version
+          bundler-cache: true
+
+      - name: Prepare the test database and install DB constraints
+        run: |
+          bin/rails db:test:prepare
+          bin/rails db:ensure_constraints
+
+      - name: Run tests
+        run: bin/rails test

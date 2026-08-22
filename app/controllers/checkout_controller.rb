@@ -16,6 +16,11 @@ class CheckoutController < ApplicationController
     @line_items = cart_line_items
     redirect_to(root_path, alert: "Your cart is empty.") and return if @line_items.empty?
 
+    # Guarantee a token even if this POST never hit #show first (script, expired
+    # session). A NULL token would defeat the unique-index double-submit guard,
+    # since SQL treats multiple NULLs as distinct.
+    session[:checkout_token] ||= SecureRandom.uuid
+
     case params[:pay]
     when "wallet" then pay_with_wallet
     when "card"   then pay_with_card

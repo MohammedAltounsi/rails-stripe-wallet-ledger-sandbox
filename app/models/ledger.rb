@@ -18,8 +18,9 @@ module Ledger
   # Everything happens inside one DB transaction: either every posting lands,
   # or none do. That atomicity is why a crash mid-write can't leak money.
   #
-  # ponytail: balance is enforced in Ruby (Entry#must_balance) for now. When we
-  # move to Postgres, add a DB-level constraint/trigger as the real backstop.
+  # Balance is enforced twice: in Ruby by Entry#must_balance on every save, and in
+  # Postgres by a deferred CONSTRAINT TRIGGER (lib/tasks/db_constraints.rake) that
+  # rejects any unbalanced entry at COMMIT, even if the app layer has a bug.
   def self.post!(memo, lines, key: nil)
     # Fast path: we already did this exact movement — replay the first result.
     if key && (existing = Entry.find_by(idempotency_key: key))
