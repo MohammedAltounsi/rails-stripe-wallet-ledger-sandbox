@@ -27,6 +27,17 @@ class WalletConcurrencyTest < ActiveSupport::TestCase
       key: "fund-#{@customer.ref}")
   end
 
+  # This class commits real rows (transactional rollback is off for the threads),
+  # so remove them here or they pollute other tests' global ledger sums and the
+  # shared revenue balance. The app has no fixtures, so clearing is safe.
+  teardown do
+    next unless POSTGRES
+    Posting.delete_all
+    Entry.delete_all
+    Account.where("name LIKE 'wallet:race-%'").delete_all
+    Customer.where("ref LIKE 'race-%'").delete_all
+  end
+
   # Layer 2: the DB trigger is the ultimate backstop, independent of app code.
   test "the overdraft trigger rejects a commit that drives a wallet negative" do
     assert_raises(ActiveRecord::StatementInvalid) do
