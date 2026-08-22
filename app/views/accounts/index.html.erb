@@ -1,0 +1,76 @@
+<% content_for :title, "Ledger · Dallah" %>
+<%
+  wallets = @accounts.select { |a| a.name.start_with?("wallet:") }
+  system  = @accounts.reject { |a| a.name.start_with?("wallet:") }
+%>
+
+<section class="max-w-4xl mx-auto px-6 pt-16">
+  <p class="label mb-3">Internal · double-entry ledger</p>
+  <h1 class="font-display text-4xl sm:text-5xl mb-2">The ledger</h1>
+  <p class="text-cream/50 mb-10 max-w-2xl">
+    Every balance here is <em>derived</em>: summed from an append-only log of postings, never stored.
+    Money is only ever moved between accounts, so the whole ledger always sums to zero.
+  </p>
+
+  <!-- Zero-sum proof -->
+  <div class="card rounded-2xl p-6 rise flex items-center justify-between mb-8">
+    <div>
+      <p class="label mb-1">Sum of every balance</p>
+      <p class="text-sm text-cream/50">If this isn’t zero, money was created or destroyed.</p>
+    </div>
+    <p class="font-display text-5xl tnum <%= @global_sum.zero? ? 'text-gold' : 'text-red-600' %>"><%= money(@global_sum) %></p>
+  </div>
+
+  <div class="grid sm:grid-cols-2 gap-6">
+    <!-- Wallets -->
+    <div class="card rounded-2xl p-6 rise" style="animation-delay:.05s">
+      <p class="label mb-4">Customer wallets</p>
+      <div class="space-y-3">
+        <% wallets.each do |a| %>
+          <div class="flex items-center justify-between">
+            <span class="font-mono text-sm text-cream/80"><%= a.name %></span>
+            <span class="font-display text-lg tnum text-gold"><%= money(a.balance_cents) %></span>
+          </div>
+        <% end %>
+        <% if wallets.empty? %><p class="text-sm text-cream/40">No wallets yet.</p><% end %>
+      </div>
+    </div>
+
+    <!-- System -->
+    <div class="card rounded-2xl p-6 rise" style="animation-delay:.1s">
+      <p class="label mb-4">System accounts</p>
+      <div class="space-y-3">
+        <% system.each do |a| %>
+          <div class="flex items-center justify-between">
+            <span class="font-mono text-sm text-cream/80"><%= a.name %></span>
+            <span class="font-display text-lg tnum"><%= money(a.balance_cents) %></span>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent entries -->
+  <div class="flex items-center gap-4 mt-14 mb-6">
+    <span class="label whitespace-nowrap">Recent entries</span>
+    <span class="h-px flex-1 bg-gradient-to-r from-gold/40 to-transparent"></span>
+  </div>
+
+  <div class="card rounded-2xl divide-y divide-cream/10">
+    <% @entries.each do |entry| %>
+      <div class="p-5">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-sm text-cream/80"><%= entry.memo %></span>
+          <span class="text-xs text-cream/40"><%= entry.created_at.strftime("%-d %b · %H:%M") %></span>
+        </div>
+        <div class="flex flex-wrap gap-x-6 gap-y-1">
+          <% entry.postings.each do |p| %>
+            <span class="text-xs font-mono <%= p.amount_cents >= 0 ? 'text-gold' : 'text-cream/50' %>">
+              <%= p.account.name %> <%= p.amount_cents >= 0 ? "+" : "−" %><%= money(p.amount_cents.abs) %>
+            </span>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</section>

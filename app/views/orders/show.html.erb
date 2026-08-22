@@ -1,0 +1,68 @@
+<% content_for :title, "Order #{@order.reference} · Dallah" %>
+
+<section class="max-w-lg mx-auto px-6 pt-16"
+         data-controller="poller" data-poller-done-value="<%= !@order.pending? %>">
+
+  <!-- Status -->
+  <div class="text-center rise">
+    <% if @order.paid? %>
+      <div class="mx-auto grid place-items-center h-16 w-16 rounded-full bg-gold/15 border border-gold/40 text-gold text-3xl mb-5">✓</div>
+      <h1 class="font-display text-4xl">Order confirmed</h1>
+      <p class="text-cream/50 mt-2">Thanks, <%= current_customer.name %>. We’re making it now.</p>
+    <% elsif @order.pending? %>
+      <div class="mx-auto grid place-items-center h-16 w-16 rounded-full bg-gold/10 border border-gold/25 text-gold text-2xl mb-5 animate-pulse">⧗</div>
+      <h1 class="font-display text-4xl">Confirming payment…</h1>
+      <p class="text-cream/50 mt-2">Waiting for Stripe to clear the card. This page updates itself.</p>
+    <% else %>
+      <div class="mx-auto grid place-items-center h-16 w-16 rounded-full bg-red-500/10 border border-red-500/40 text-red-600 text-3xl mb-5">×</div>
+      <h1 class="font-display text-4xl">Payment failed</h1>
+    <% end %>
+  </div>
+
+  <!-- Pickup -->
+  <% if @order.pickup_store.present? %>
+    <div class="card rounded-2xl p-5 mt-8 rise flex items-center gap-4" style="animation-delay:.05s">
+      <span class="grid place-items-center h-11 w-11 rounded-full bg-gold/10 border border-gold/25 text-lg">📍</span>
+      <div>
+        <p class="font-display text-lg leading-tight"><%= @order.pickup_store %></p>
+        <p class="text-sm text-cream/50"><%= @order.pickup_time %></p>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Receipt -->
+  <div class="card rounded-2xl p-7 mt-6 rise" style="animation-delay:.1s">
+    <div class="flex items-center justify-between pb-5 border-b hairline">
+      <div>
+        <p class="label">Receipt</p>
+        <p class="font-display text-xl mt-1"><%= @order.reference %></p>
+      </div>
+      <span class="text-xs rounded-full border hairline px-3 py-1 <%= @order.paid? ? 'text-gold border-gold/40' : 'text-cream/50' %>">
+        <%= @order.status.upcase %> · <%= @order.payment_method == "wallet" ? "Dallah Card" : "card" %>
+      </span>
+    </div>
+
+    <div class="space-y-4 py-5">
+      <% @order.order_items.each do |item| %>
+        <div class="flex items-start justify-between text-sm gap-3">
+          <span class="text-cream/80">
+            <%= item.quantity %> × <%= item.product.name %>
+            <% if item.options_summary.present? %><br><span class="text-cream/40 text-xs"><%= item.options_summary %></span><% end %>
+          </span>
+          <span class="tnum text-cream/60 shrink-0"><%= money(item.subtotal_cents) %></span>
+        </div>
+      <% end %>
+    </div>
+
+    <div class="flex items-center justify-between pt-5 border-t hairline">
+      <span class="label">Total</span>
+      <span class="font-display text-3xl text-gold tnum"><%= money(@order.total_cents) %></span>
+    </div>
+    <p class="text-xs text-cream/40 mt-4"><%= @order.created_at.strftime("%-d %b %Y · %H:%M") %></p>
+  </div>
+
+  <div class="flex items-center justify-center gap-6 mt-8 text-sm">
+    <%= link_to "Order again", root_path, class: "btn-gold rounded-full px-6 py-3" %>
+    <%= link_to "All orders", orders_path, class: "text-cream/60 hover:text-gold transition-colors" %>
+  </div>
+</section>

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title><%= content_for(:title) || "Dallah Coffee" %></title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+    <%= yield :head %>
+
+    <link rel="icon" href="/icon.svg" type="image/svg+xml">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,600&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
+    <%= javascript_importmap_tags %>
+    <%= yield :stripe_js %>
+  </head>
+
+  <body class="min-h-screen">
+    <div class="atmosphere"></div>
+    <div class="grain"></div>
+
+    <div class="relative z-10 min-h-screen flex flex-col">
+      <!-- ── Nav ─────────────────────────────────────────────────────── -->
+      <header class="sticky top-0 z-30 border-b hairline backdrop-blur-md bg-espresso/80">
+        <div class="max-w-6xl mx-auto px-6 h-20 flex items-center justify-between gap-6">
+          <%= link_to root_path, class: "flex items-center gap-3 group" do %>
+            <svg viewBox="0 0 120 138" class="h-9 w-auto" aria-label="Dallah">
+              <path fill="none" stroke="#2a201a" stroke-width="8.5" stroke-linecap="round" stroke-linejoin="round" d="M75 79 C100 81 108 107 87 116 C80 119 73 114 76 108 C78 104 84 106 82 110"/>
+              <path fill="#2a201a" d="M45 80 C29 75, 17 66, 15 51 C14 48, 18 47, 20 49 C26 59, 36 69, 50 74 Z"/>
+              <path fill="#2a201a" d="M44 76 C33 86, 30 106, 37 118 C42 127, 51 131, 60 131 C69 131, 78 127, 83 118 C90 106, 87 86, 76 76 C68 70, 52 70, 44 76 Z"/>
+              <path fill="#9a6d1e" d="M47 123 C47 130 73 130 73 123 C73 119 47 119 47 123 Z"/>
+              <path fill="#2a201a" d="M45 74 C45 66, 51 65, 60 65 C69 65, 75 66, 75 74 Z"/>
+              <rect x="48" y="59.5" width="24" height="6.5" rx="3.2" fill="#9a6d1e"/>
+              <path fill="#2a201a" d="M51 60 C52 48, 68 48, 69 60 Z"/>
+              <rect x="54" y="43.5" width="12" height="4.5" rx="2.2" fill="#9a6d1e"/>
+              <circle cx="60" cy="40" r="5" fill="#2a201a"/>
+              <circle cx="60" cy="31" r="3.6" fill="#9a6d1e"/>
+              <rect x="59" y="22" width="2" height="8" fill="#2a201a"/>
+              <path fill="#9a6d1e" d="M60 10 L62 24 L58 24 Z"/>
+              <circle cx="60" cy="9" r="2.1" fill="#2a201a"/>
+            </svg>
+            <span class="leading-none">
+              <span class="block font-display text-2xl tracking-wide">Dallah</span>
+              <span class="block label mt-0.5">Coffee</span>
+            </span>
+          <% end %>
+
+          <nav class="hidden md:flex items-center gap-8 text-sm text-cream/70">
+            <%= link_to "Menu",   root_path,    class: "hover:text-gold transition-colors" %>
+            <%= link_to "Wallet", wallet_path,  class: "hover:text-gold transition-colors" %>
+            <%= link_to "Orders", orders_path,  class: "hover:text-gold transition-colors" %>
+            <%= link_to "Ledger", ledger_path,  class: "hover:text-gold transition-colors" %>
+          </nav>
+
+          <div class="flex items-center gap-3">
+            <!-- Customer switcher (demo) -->
+            <details class="relative group">
+              <summary class="list-none cursor-pointer select-none flex items-center gap-2.5 rounded-full border hairline px-3.5 py-2 hover:border-gold/60 transition-colors">
+                <span class="grid place-items-center h-7 w-7 rounded-full bg-gold text-espresso font-display text-sm font-semibold"><%= current_customer.name.first %></span>
+                <span class="text-left leading-tight">
+                  <span class="block text-sm"><%= current_customer.name %></span>
+                  <span class="block text-[.68rem] text-gold tnum"><%= money(current_customer.wallet_balance_cents) %></span>
+                </span>
+                <svg class="h-3.5 w-3.5 text-cream/50" viewBox="0 0 20 20" fill="currentColor"><path d="M5 7l5 5 5-5z"/></svg>
+              </summary>
+              <div class="absolute right-0 mt-2 w-56 rounded-xl border hairline bg-espresso-2 shadow-2xl p-1.5 z-40">
+                <p class="label px-3 pt-2 pb-1">Switch customer · demo</p>
+                <% customers_for_switcher.each do |c| %>
+                  <%= button_to switch_customer_path(c.ref), class: "w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-gold/10 transition-colors #{'bg-gold/10' if c.id == current_customer.id}" do %>
+                    <span class="text-sm"><%= c.name %></span>
+                    <span class="text-[.7rem] text-gold tnum"><%= money(c.wallet_balance_cents) %></span>
+                  <% end %>
+                <% end %>
+              </div>
+            </details>
+
+            <!-- Cart -->
+            <%= link_to cart_path, class: "relative grid place-items-center h-11 w-11 rounded-full border hairline hover:border-gold/60 transition-colors" do %>
+              <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path stroke-linecap="round" stroke-linejoin="round" d="M6 6h15l-1.5 9h-12L6 6Zm0 0-.7-3H3m5 16a1 1 0 1 0 0-.001M18 19a1 1 0 1 0 0-.001"/></svg>
+              <% if cart_count > 0 %>
+                <span class="absolute -top-1 -right-1 grid place-items-center min-w-5 h-5 px-1 rounded-full bg-gold text-espresso text-[.7rem] font-semibold tnum"><%= cart_count %></span>
+              <% end %>
+            <% end %>
+          </div>
+        </div>
+      </header>
+
+      <!-- ── Flash ───────────────────────────────────────────────────── -->
+      <% if notice %>
+        <div class="max-w-6xl mx-auto w-full px-6 pt-4">
+          <div class="rise inline-flex items-center gap-2 rounded-lg border border-gold/40 bg-gold/10 px-4 py-2 text-sm text-cream"><span class="text-gold">●</span><%= notice %></div>
+        </div>
+      <% end %>
+      <% if alert %>
+        <div class="max-w-6xl mx-auto w-full px-6 pt-4">
+          <div class="rise inline-flex items-center gap-2 rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-2 text-sm text-cream"><span class="text-red-600">●</span><%= alert %></div>
+        </div>
+      <% end %>
+
+      <main class="flex-1"><%= yield %></main>
+
+      <!-- ── Footer ──────────────────────────────────────────────────── -->
+      <footer class="border-t hairline mt-24">
+        <div class="max-w-6xl mx-auto px-6 py-12 grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
+          <div>
+            <span class="font-display text-lg text-cream/90">Dallah Coffee</span>
+            <p class="text-sm text-cream/50 mt-2 leading-relaxed">Specialty coffee, roasted in Jeddah. Order ahead and pick it up ready.</p>
+          </div>
+          <div>
+            <p class="label mb-3">Locations</p>
+            <ul class="space-y-1.5 text-sm text-cream/60">
+              <li>Tahlia Street, Jeddah</li>
+              <li>The Corniche, Jeddah</li>
+              <li>Al Rawdah District, Jeddah</li>
+            </ul>
+          </div>
+          <div>
+            <p class="label mb-3">Hours</p>
+            <ul class="space-y-1.5 text-sm text-cream/60">
+              <li>Sat – Thu · 6:00 AM – 12:00 AM</li>
+              <li>Friday · 1:00 PM – 12:00 AM</li>
+            </ul>
+          </div>
+          <div>
+            <p class="label mb-3">Systems</p>
+            <ul class="space-y-1.5 text-sm text-cream/60">
+              <li><%= link_to "Ledger", ledger_path, class: "hover:text-gold transition-colors" %></li>
+              <li><%= link_to "Reconciliation", reconciliation_path, class: "hover:text-gold transition-colors" %></li>
+            </ul>
+          </div>
+        </div>
+        <div class="border-t hairline">
+          <div class="max-w-6xl mx-auto px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-[.72rem] text-cream/40">
+            <span>© <%= Time.current.year %> Dallah Coffee · Jeddah, Saudi Arabia</span>
+            <span class="inline-flex items-center gap-1.5 rounded-full border hairline px-3 py-1"><span class="h-1.5 w-1.5 rounded-full bg-gold"></span>Payments in Stripe test mode</span>
+          </div>
+        </div>
+      </footer>
+    </div>
+  </body>
+</html>
