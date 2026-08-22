@@ -1,0 +1,46 @@
+<%# A demo payment card. Stripe test mode only — 4242… is Stripe's universal
+    test card; it always succeeds and never touches a real account. Fixed dark
+    palette so the card reads as a physical card on the light page. %>
+<div class="mb-7">
+  <p class="label mb-3">Use this test card</p>
+
+  <div class="relative rounded-2xl p-6 overflow-hidden"
+       style="background: linear-gradient(135deg,#2a201a 0%,#5b4320 55%,#9a6d1e 100%); color:#f4efe4; box-shadow:0 18px 40px -20px rgba(60,44,26,.6);">
+    <div class="flex items-center justify-between">
+      <span class="text-sm tracking-wide" style="color:rgba(244,239,228,.72)">Dallah · Test Card</span>
+      <span class="font-display text-xl italic">VISA</span>
+    </div>
+
+    <!-- chip -->
+    <div class="mt-5 h-8 w-11 rounded-md" style="background:linear-gradient(135deg,#f0d79b,#b9922f)"></div>
+
+    <!-- number -->
+    <div class="mt-4 flex items-center justify-between gap-3">
+      <span class="tnum text-xl sm:text-2xl" style="letter-spacing:.14em">4242 4242 4242 4242</span>
+      <button type="button" data-copy="4242424242424242"
+              onclick="navigator.clipboard.writeText(this.dataset.copy).then(()=>{const t=this.textContent;this.textContent='Copied';setTimeout(()=>{this.textContent=t},1200)})"
+              class="shrink-0 text-xs rounded-full px-3 py-1 transition-colors"
+              style="border:1px solid rgba(244,239,228,.35)">Copy</button>
+    </div>
+
+    <!-- expiry / cvc / zip -->
+    <div class="mt-5 flex items-end gap-8 text-sm">
+      <div>
+        <span class="block text-[.6rem] uppercase" style="letter-spacing:.2em;color:rgba(244,239,228,.6)">Expiry</span>
+        <span class="tnum">12 / 34</span>
+      </div>
+      <div>
+        <span class="block text-[.6rem] uppercase" style="letter-spacing:.2em;color:rgba(244,239,228,.6)">CVC</span>
+        <span class="tnum">123</span>
+      </div>
+      <div class="ml-auto text-right">
+        <span class="block text-[.6rem] uppercase" style="letter-spacing:.2em;color:rgba(244,239,228,.6)">ZIP</span>
+        <span class="tnum">12345</span>
+      </div>
+    </div>
+  </div>
+
+  <p class="text-xs text-cream/50 mt-3 text-center leading-relaxed">
+    Stripe <strong class="text-cream/70">test mode</strong> — no real card is charged. Type these into the form below (any future expiry and any 3-digit CVC also work).
+  </p>
+</div>

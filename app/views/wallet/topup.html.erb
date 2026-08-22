@@ -1,0 +1,34 @@
+<% content_for :title, "Top up — Dallah" %>
+<% content_for :stripe_js do %>
+  <script src="https://js.stripe.com/v3/"></script>
+<% end %>
+
+<section class="max-w-lg mx-auto px-6 pt-16">
+  <%= link_to wallet_path, class: "text-sm text-cream/50 hover:text-gold transition-colors inline-flex items-center gap-1.5 mb-6" do %>
+    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" d="M15 6l-6 6 6 6"/></svg>
+    Back to wallet
+  <% end %>
+
+  <p class="label mb-3">Top up</p>
+  <h1 class="font-display text-5xl text-gold tnum mb-1"><%= money(@amount_cents) %></h1>
+  <p class="text-cream/50 mb-8">will be added to <%= current_customer.name %>’s wallet once the card clears.</p>
+
+  <%= render "shared/test_card" %>
+
+  <form class="card rounded-2xl p-7 space-y-6"
+        data-controller="stripe-payment"
+        data-stripe-payment-publishable-key-value="<%= @publishable_key %>"
+        data-stripe-payment-client-secret-value="<%= @client_secret %>"
+        data-stripe-payment-return-url-value="<%= wallet_url(topup: 1) %>"
+        data-action="submit->stripe-payment#submit">
+
+    <div id="payment-element" class="min-h-[220px]"></div>
+
+    <p data-stripe-payment-target="error" class="hidden text-sm text-red-600"></p>
+
+    <button type="submit" data-stripe-payment-target="submit"
+            class="btn-gold w-full rounded-xl py-4 text-base font-medium">
+      <span data-stripe-payment-target="label" data-idle="Pay <%= money(@amount_cents) %>">Pay <%= money(@amount_cents) %></span>
+    </button>
+  </form>
+</section>

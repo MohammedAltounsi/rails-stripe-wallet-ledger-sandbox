@@ -1,0 +1,74 @@
+@import "tailwindcss";
+
+/* ── Dallah design tokens · warm light theme ──────────────────────────────
+   Token NAMES keep their semantic role so the utilities used across the
+   views (bg-espresso, text-cream, text-gold, hairline…) flip with the theme:
+     espresso   = page background   (off-white)
+     espresso-2 = raised surface    (dropdowns, <option>s)
+     cream      = foreground ink    (dark espresso-brown)
+     gold       = accent            (bronze-gold, readable on off-white)     */
+@theme {
+  --color-espresso:   #f4efe4;   /* off-white page */
+  --color-espresso-2: #fbf7ee;   /* raised surface */
+  --color-surface:    #ffffff;
+  --color-gold:       #9a6d1e;   /* bronze-gold, ~4.7:1 on the off-white */
+  --color-gold-bright:#b3812c;
+  --color-cream:      #2a201a;   /* dark ink */
+
+  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --font-body:    "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+  body {
+    background-color: var(--color-espresso);
+    color: var(--color-cream);
+    font-family: var(--font-body);
+  }
+  h1, h2, h3, .font-display { font-family: var(--font-display); }
+  ::selection { background: rgba(154,109,30,.22); }
+}
+
+/* ── Atmosphere: faint warm light + fine paper grain over the cream ─────── */
+.atmosphere {
+  position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background:
+    radial-gradient(1100px 560px at 50% -12%, rgba(154,109,30,.07), transparent 68%),
+    radial-gradient(820px 440px at 92% 118%, rgba(154,109,30,.05), transparent 70%);
+}
+.grain {
+  position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: .03;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ── Staggered reveal on load ─────────────────────────────────────────── */
+@keyframes rise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+.rise { animation: rise .7s cubic-bezier(.2,.7,.2,1) both; }
+
+/* ── Reusable bits ────────────────────────────────────────────────────── */
+.label {
+  letter-spacing: .28em; text-transform: uppercase;
+  font-size: .66rem; color: var(--color-gold); font-weight: 600;
+}
+.hairline { border-color: rgba(42,32,26,.12); }
+
+.btn-gold {
+  background: var(--color-gold); color: #fffdf8; font-weight: 600; letter-spacing: .01em;
+  transition: transform .15s ease, background .2s ease, box-shadow .25s ease;
+}
+.btn-gold:hover { background: var(--color-gold-bright); transform: translateY(-1px); box-shadow: 0 12px 30px -14px rgba(154,109,30,.6); }
+.btn-gold:active { transform: translateY(0); }
+
+.btn-ghost { border: 1px solid rgba(42,32,26,.20); color: var(--color-cream); transition: border-color .2s ease, background .2s ease; }
+.btn-ghost:hover { border-color: var(--color-gold); background: rgba(154,109,30,.08); }
+
+.card {
+  background: linear-gradient(180deg, #ffffff, #fbf6ec);
+  border: 1px solid rgba(42,32,26,.10);
+  box-shadow: 0 1px 2px rgba(42,32,26,.04);
+  transition: border-color .25s ease, transform .25s ease, box-shadow .25s ease;
+}
+.card:hover { border-color: rgba(154,109,30,.5); transform: translateY(-3px); box-shadow: 0 22px 48px -24px rgba(60,44,26,.35); }
+
+.tnum { font-variant-numeric: tabular-nums; }

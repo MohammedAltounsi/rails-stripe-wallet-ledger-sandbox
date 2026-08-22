@@ -1,0 +1,27 @@
+<% content_for :title, "Card payment — Dallah" %>
+<% content_for :stripe_js do %>
+  <script src="https://js.stripe.com/v3/"></script>
+<% end %>
+
+<section class="max-w-lg mx-auto px-6 pt-16">
+  <p class="label mb-3">Order <%= @order.reference %></p>
+  <h1 class="font-display text-5xl text-gold tnum mb-1"><%= money(@order.total_cents) %></h1>
+  <p class="text-cream/50 mb-8"><%= pluralize(@order.order_items.sum(&:quantity), "item") %> · pay by card to confirm.</p>
+
+  <%= render "shared/test_card" %>
+
+  <form class="card rounded-2xl p-7 space-y-6"
+        data-controller="stripe-payment"
+        data-stripe-payment-publishable-key-value="<%= @publishable_key %>"
+        data-stripe-payment-client-secret-value="<%= @client_secret %>"
+        data-stripe-payment-return-url-value="<%= order_url(@order) %>"
+        data-action="submit->stripe-payment#submit">
+
+    <div id="payment-element" class="min-h-[220px]"></div>
+    <p data-stripe-payment-target="error" class="hidden text-sm text-red-600"></p>
+
+    <button type="submit" data-stripe-payment-target="submit" class="btn-gold w-full rounded-xl py-4 text-base font-medium">
+      <span data-stripe-payment-target="label" data-idle="Pay <%= money(@order.total_cents) %>">Pay <%= money(@order.total_cents) %></span>
+    </button>
+  </form>
+</section>

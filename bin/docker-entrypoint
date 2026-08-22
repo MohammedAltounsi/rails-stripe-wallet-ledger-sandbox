@@ -1,0 +1,13 @@
+#!/bin/bash -e
+
+# On server start: prepare the DB, install the double-entry trigger, then make
+# sure the showcase has data — seed the menu once, and fund the demo cards
+# (both idempotent, so cold starts on the free tier are safe no-ops after first run).
+if [ "${@: -2:1}" == "./bin/rails" ] && [ "${@: -1:1}" == "server" ]; then
+  ./bin/rails db:prepare
+  ./bin/rails db:ensure_constraints
+  ./bin/rails runner "Rails.application.load_seed if Product.count.zero?"
+  ./bin/rails demo:fund
+fi
+
+exec "${@}"

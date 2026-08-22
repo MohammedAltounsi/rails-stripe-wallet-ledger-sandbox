@@ -1,0 +1,31 @@
+# Render Blueprint — Dallah Coffee (Rails 8 + PostgreSQL)
+# Web runs on Render; the Postgres database is hosted on Neon (free, persistent)
+# and passed in as DATABASE_URL. Deploy: push to GitHub, then New → Blueprint.
+services:
+  - type: web
+    name: dallah-coffee
+    runtime: docker
+    plan: free
+    region: frankfurt          # closest Render region to Saudi Arabia
+    healthCheckPath: /up
+    autoDeploy: true
+    envVars:
+      # Thruster listens on the port Render routes to.
+      - key: HTTP_PORT
+        value: 10000
+      # One Puma worker fits the free tier's 512 MB.
+      - key: WEB_CONCURRENCY
+        value: 1
+      - key: RAILS_MAX_THREADS
+        value: 5
+      # --- Secrets: set these in the Render dashboard (sync:false = not in git) ---
+      - key: RAILS_MASTER_KEY          # value of config/master.key
+        sync: false
+      - key: DATABASE_URL              # Neon connection string (…?sslmode=require)
+        sync: false
+      - key: STRIPE_PUBLISHABLE_KEY    # pk_test_…
+        sync: false
+      - key: STRIPE_SECRET_KEY         # sk_test_…
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET     # whsec_… from the DASHBOARD webhook (not the CLI one)
+        sync: false

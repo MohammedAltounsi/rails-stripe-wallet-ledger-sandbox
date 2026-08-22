@@ -1,0 +1,53 @@
+<% content_for :title, "Your Order — Dallah" %>
+
+<section class="max-w-3xl mx-auto px-6 pt-16">
+  <p class="label mb-3">Your order</p>
+  <h1 class="font-display text-4xl sm:text-5xl mb-10">Review &amp; customize</h1>
+
+  <% if @line_items.empty? %>
+    <div class="card rounded-2xl p-12 text-center rise">
+      <p class="text-cream/60 text-lg">Your order is empty.</p>
+      <%= link_to "Browse the menu →", root_path, class: "btn-gold inline-flex mt-6 rounded-full px-6 py-3 text-sm" %>
+    </div>
+  <% else %>
+    <div class="card rounded-2xl divide-y divide-cream/10 rise">
+      <% @line_items.each do |li| %>
+        <div class="flex items-center gap-4 p-5">
+          <%= product_media(li[:product], klass: "h-16 w-16 shrink-0 rounded-xl", iced: li[:opts]["temperature"] == "Iced") %>
+          <div class="flex-1 min-w-0">
+            <p class="font-display text-lg leading-tight"><%= li[:product].name %></p>
+            <p class="text-gold text-xs mt-0.5"><%= Customization.summary(li[:opts]) %></p>
+            <p class="text-cream/40 text-xs mt-0.5 tnum"><%= money(li[:unit_cents]) %> each</p>
+          </div>
+
+          <div class="flex items-center rounded-full border hairline overflow-hidden">
+            <%= button_to cart_line_path(key: li[:key], quantity: li[:qty] - 1), method: :patch, class: "h-9 w-9 grid place-items-center hover:bg-gold/10 transition-colors" do %>
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" d="M5 12h14"/></svg>
+            <% end %>
+            <span class="w-9 text-center text-sm tnum"><%= li[:qty] %></span>
+            <%= button_to cart_line_path(key: li[:key], quantity: li[:qty] + 1), method: :patch, class: "h-9 w-9 grid place-items-center hover:bg-gold/10 transition-colors" do %>
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" d="M12 5v14M5 12h14"/></svg>
+            <% end %>
+          </div>
+
+          <span class="w-24 text-right font-display text-lg tnum"><%= money(li[:subtotal_cents]) %></span>
+
+          <%= button_to cart_line_path(key: li[:key]), method: :delete, class: "text-cream/40 hover:text-red-600 transition-colors" do %>
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path stroke-linecap="round" d="M6 7h12M9 7V5h6v2m-7 0 .7 12h6.6L17 7"/></svg>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+
+    <div class="flex items-center justify-between mt-8">
+      <div>
+        <p class="label">Total</p>
+        <p class="font-display text-4xl text-gold tnum mt-1"><%= money(@total_cents) %></p>
+      </div>
+      <%= link_to checkout_path, class: "btn-gold rounded-full px-8 py-4 text-base inline-flex items-center gap-2" do %>
+        Checkout
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" d="M5 12h14m-6-6 6 6-6 6"/></svg>
+      <% end %>
+    </div>
+  <% end %>
+</section>
