@@ -49,10 +49,14 @@ module Webhooks
       return unless order
       return if order.paid?   # redelivery of an already-settled order: don't re-post or re-email
 
-      # Defense-in-depth: the server sets the PI amount from the order, so these
-      # always match. Log loudly if they ever diverge — reconciliation catches it too.
+      # The server sets the PI amount from the order, so these match on the happy
+      # path. If they ever diverge, refuse to auto-settle: book nothing and leave
+      # the order pending for manual review. The charge exists in Stripe but not in
+      # the ledger, so reconciliation reports it in its "missing" bucket. (Booking
+      # it anyway would silently record the wrong revenue with no way to surface it.)
       if pi.amount != order.total_cents
-        Rails.logger.error("settle_order amount mismatch: pi #{pi.id} charged #{pi.amount}, order #{order.reference} total #{order.total_cents}")
+        Rails.logger.error("settle_order amount mismatch: pi #{pi.id} charged #{pi.amount}, order #{order.reference} total #{order.total_cents} — leaving pending for review")
+        return
       end
 
       Ledger.post!(

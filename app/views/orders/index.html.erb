@@ -16,7 +16,7 @@
           <div class="min-w-0">
             <p class="font-display text-lg leading-tight"><%= order.reference %></p>
             <p class="text-xs text-cream/40 mt-0.5">
-              <%= order.order_items.sum(&:quantity) %> items · <%= order.payment_method %> · <%= order.created_at.strftime("%-d %b, %H:%M") %>
+              <%= pluralize(order.order_items.sum(&:quantity), "item") %> · <%= order.payment_method %> · <%= order.created_at.strftime("%-d %b, %H:%M") %>
             </p>
           </div>
           <div class="flex items-center gap-4">
