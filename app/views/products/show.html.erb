@@ -1,0 +1,105 @@
+<% content_for :title, "#{@product.name} · Dallah" %>
+<% iced_default = @product.default_temperature == "Iced" %>
+
+<section class="max-w-5xl mx-auto px-6 pt-10">
+  <%= link_to root_path, class: "text-sm text-cream/50 hover:text-gold transition-colors inline-flex items-center gap-1.5 mb-6" do %>
+    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" d="M15 6l-6 6 6 6"/></svg>
+    Menu
+  <% end %>
+
+  <%= form_with url: cart_items_path, method: :post, class: "grid lg:grid-cols-2 gap-10",
+        data: { controller: "drink",
+                drink_base_value: @product.price_cents,
+                drink_size_deltas_value: Customization::SIZES.to_json,
+                drink_shot_price_value: Customization::SHOT_PRICE } do %>
+    <%= hidden_field_tag :product_id, @product.id %>
+
+    <!-- Visual -->
+    <div class="rise lg:sticky lg:top-28 h-fit">
+      <%= product_media(@product, klass: "card rounded-3xl aspect-square", iced: iced_default) %>
+    </div>
+
+    <!-- Customizer -->
+    <div class="rise" style="animation-delay:.08s">
+      <p class="label mb-2"><%= @product.category %></p>
+      <h1 class="font-display text-4xl sm:text-5xl leading-tight"><%= @product.name %></h1>
+      <p class="text-gold mt-2"><%= @product.tagline %></p>
+      <p class="text-cream/60 leading-relaxed mt-4"><%= @product.description %></p>
+
+      <div class="mt-8 space-y-7">
+        <!-- Size -->
+        <div>
+          <p class="label mb-3">Size</p>
+          <div class="grid grid-cols-3 gap-3">
+            <% [["Tall","12 oz"],["Grande","16 oz"],["Venti","20 oz"]].each_with_index do |(name, oz), i| %>
+              <label class="cursor-pointer">
+                <input type="radio" name="size" value="<%= name %>" class="peer sr-only" <%= "checked" if i.zero? %> data-action="change->drink#update">
+                <span class="block rounded-xl border hairline text-center py-3 peer-checked:border-gold peer-checked:bg-gold/10 transition-colors">
+                  <span class="block font-display text-lg peer-checked:text-gold"><%= name %></span>
+                  <span class="block text-[.7rem] text-cream/40"><%= oz %><%= " · +#{money(Customization::SIZES[name])}" if Customization::SIZES[name] > 0 %></span>
+                </span>
+              </label>
+            <% end %>
+          </div>
+        </div>
+
+        <!-- Temperature -->
+        <div>
+          <p class="label mb-3">Temperature</p>
+          <% if @product.customizable_temperature? %>
+            <div class="grid grid-cols-2 gap-3">
+              <% ["Hot","Iced"].each_with_index do |t, i| %>
+                <label class="cursor-pointer">
+                  <input type="radio" name="temperature" value="<%= t %>" class="peer sr-only" <%= "checked" if i.zero? %> data-action="change->drink#update">
+                  <span class="block rounded-xl border hairline text-center py-3 peer-checked:border-gold peer-checked:bg-gold/10 peer-checked:text-gold transition-colors"><%= t %></span>
+                </label>
+              <% end %>
+            </div>
+          <% else %>
+            <input type="hidden" name="temperature" value="<%= @product.default_temperature %>">
+            <span class="inline-block rounded-xl border hairline px-4 py-2.5 text-sm text-cream/70"><%= @product.default_temperature %> only</span>
+          <% end %>
+        </div>
+
+        <!-- Milk + Syrup -->
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <p class="label mb-3">Milk</p>
+            <select name="milk" data-action="change->drink#update" class="w-full rounded-xl border hairline bg-transparent px-4 py-3 text-sm focus:border-gold outline-none">
+              <% Customization::MILKS.each { |m| %><option value="<%= m %>" class="bg-espresso-2"><%= m %></option><% } %>
+            </select>
+          </div>
+          <div>
+            <p class="label mb-3">Syrup</p>
+            <select name="syrup" data-action="change->drink#update" class="w-full rounded-xl border hairline bg-transparent px-4 py-3 text-sm focus:border-gold outline-none">
+              <% Customization::SYRUPS.each { |s| %><option value="<%= s %>" class="bg-espresso-2"><%= s %></option><% } %>
+            </select>
+          </div>
+        </div>
+
+        <!-- Shots -->
+        <div>
+          <p class="label mb-3">Extra shots <span class="text-cream/40 normal-case tracking-normal">· +<%= money(Customization::SHOT_PRICE) %> each</span></p>
+          <div class="grid grid-cols-3 gap-3">
+            <% [["0","None"],["1","+1 shot"],["2","+2 shots"]].each_with_index do |(v, lbl), i| %>
+              <label class="cursor-pointer">
+                <input type="radio" name="shots" value="<%= v %>" class="peer sr-only" <%= "checked" if i.zero? %> data-action="change->drink#update">
+                <span class="block rounded-xl border hairline text-center py-3 text-sm peer-checked:border-gold peer-checked:bg-gold/10 peer-checked:text-gold transition-colors"><%= lbl %></span>
+              </label>
+            <% end %>
+          </div>
+        </div>
+
+        <!-- Quantity + Add -->
+        <div class="flex items-center gap-4 pt-2">
+          <div class="flex items-center rounded-xl border hairline">
+            <input type="number" name="quantity" value="1" min="1" max="20" class="w-16 bg-transparent text-center py-3.5 outline-none tnum">
+          </div>
+          <button type="submit" class="btn-gold flex-1 rounded-xl py-4 text-base font-medium flex items-center justify-center gap-2">
+            Add to order · <span data-drink-target="price">SAR <%= "%.2f" % (@product.price_cents/100.0) %></span>
+          </button>
+        </div>
+      </div>
+    </div>
+  <% end %>
+</section>

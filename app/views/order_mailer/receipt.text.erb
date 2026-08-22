@@ -1,0 +1,23 @@
+DALLAH COFFEE · RECEIPT (PAID)
+
+Thanks, <%= @order.customer.name %>. Your order is confirmed. We're preparing it now.
+
+Order:     <%= @order.reference %>
+Date:      <%= @order.created_at.strftime("%-d %b %Y · %H:%M") %>
+Paid with: <%= @order.payment_method == "wallet" ? "Dallah Card" : "Card" %>
+<% if @order.pickup_store.present? -%>
+Pickup:    <%= @order.pickup_store %> · <%= @order.pickup_time %>
+<% end -%>
+
+------------------------------------------------------------
+<% @items.each do |item| -%>
+<%= item.quantity %> x <%= item.product.name %> · <%= money(item.subtotal_cents) %>
+<% if item.options_summary.present? -%>
+   <%= item.options_summary %>
+<% end -%>
+<% end -%>
+------------------------------------------------------------
+TOTAL: <%= money(@order.total_cents) %>
+
+Show this receipt or your order number <%= @order.reference %> at the counter.
+Dallah Coffee · Jeddah, Saudi Arabia · payments in Stripe test mode.

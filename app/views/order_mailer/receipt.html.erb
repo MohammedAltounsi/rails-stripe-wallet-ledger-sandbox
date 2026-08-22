@@ -1,0 +1,90 @@
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4efe4;padding:32px 0;font-family:Helvetica,Arial,sans-serif;">
+  <tr>
+    <td align="center">
+      <table role="presentation" width="520" cellpadding="0" cellspacing="0" style="width:520px;max-width:92%;background:#ffffff;border:1px solid rgba(42,32,26,.10);border-radius:16px;overflow:hidden;">
+
+        <!-- Header -->
+        <tr>
+          <td style="background:linear-gradient(135deg,#2a201a,#5b4320 60%,#9a6d1e);padding:28px 32px;">
+            <div style="color:#f4efe4;font-size:22px;font-weight:bold;letter-spacing:.5px;">Dallah Coffee</div>
+            <div style="color:rgba(244,239,228,.7);font-size:12px;letter-spacing:.18em;text-transform:uppercase;margin-top:4px;">Receipt · Paid</div>
+          </td>
+        </tr>
+
+        <!-- Greeting -->
+        <tr>
+          <td style="padding:28px 32px 8px;color:#2a201a;">
+            <p style="margin:0 0 4px;font-size:16px;">Thanks, <%= @order.customer.name %>. Your order is confirmed.</p>
+            <p style="margin:0;color:#6b6154;font-size:14px;">We’re preparing it now.</p>
+          </td>
+        </tr>
+
+        <!-- Order + pickup meta -->
+        <tr>
+          <td style="padding:16px 32px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:13px;color:#2a201a;">
+              <tr>
+                <td style="padding:6px 0;color:#6b6154;">Order</td>
+                <td align="right" style="padding:6px 0;font-weight:bold;"><%= @order.reference %></td>
+              </tr>
+              <tr>
+                <td style="padding:6px 0;color:#6b6154;">Date</td>
+                <td align="right" style="padding:6px 0;"><%= @order.created_at.strftime("%-d %b %Y · %H:%M") %></td>
+              </tr>
+              <tr>
+                <td style="padding:6px 0;color:#6b6154;">Paid with</td>
+                <td align="right" style="padding:6px 0;"><%= @order.payment_method == "wallet" ? "Dallah Card" : "Card" %></td>
+              </tr>
+              <% if @order.pickup_store.present? %>
+              <tr>
+                <td style="padding:6px 0;color:#6b6154;">Pickup</td>
+                <td align="right" style="padding:6px 0;"><%= @order.pickup_store %> · <%= @order.pickup_time %></td>
+              </tr>
+              <% end %>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Items -->
+        <tr>
+          <td style="padding:8px 32px 0;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid rgba(42,32,26,.12);">
+              <% @items.each do |item| %>
+                <tr>
+                  <td style="padding:14px 0;color:#2a201a;font-size:14px;vertical-align:top;">
+                    <span style="font-weight:bold;"><%= item.quantity %> × <%= item.product.name %></span>
+                    <% if item.options_summary.present? %>
+                      <br><span style="color:#6b6154;font-size:12px;"><%= item.options_summary %></span>
+                    <% end %>
+                  </td>
+                  <td align="right" style="padding:14px 0;color:#2a201a;font-size:14px;white-space:nowrap;vertical-align:top;"><%= money(item.subtotal_cents) %></td>
+                </tr>
+              <% end %>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Total -->
+        <tr>
+          <td style="padding:0 32px 28px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top:2px solid rgba(42,32,26,.14);">
+              <tr>
+                <td style="padding:16px 0;color:#6b6154;font-size:12px;letter-spacing:.18em;text-transform:uppercase;">Total</td>
+                <td align="right" style="padding:16px 0;color:#9a6d1e;font-size:24px;font-weight:bold;"><%= money(@order.total_cents) %></td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="background:#faf6ee;padding:20px 32px;border-top:1px solid rgba(42,32,26,.08);color:#6b6154;font-size:12px;line-height:1.6;">
+            Show this receipt or your order number <strong style="color:#2a201a;"><%= @order.reference %></strong> at the counter.<br>
+            Dallah Coffee · Jeddah, Saudi Arabia · payments processed in Stripe test mode.
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>

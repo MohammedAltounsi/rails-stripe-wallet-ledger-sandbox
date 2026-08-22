@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  security:
+    name: Security scans
+    runs-on: ubuntu-latest
+    env:
+      BUNDLE_WITHOUT: production   # skip pg (needs libpq); scanners don't need it
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: .ruby-version
+          bundler-cache: true
+
+      - name: Brakeman (Rails static security analysis)
+        run: bundle exec brakeman -q -w2 --no-pager
+
+      - name: bundler-audit (known gem CVEs)
+        run: |
+          bundle exec bundle-audit update
+          bundle exec bundle-audit check

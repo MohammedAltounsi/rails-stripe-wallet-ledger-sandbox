@@ -1,0 +1,64 @@
+<% content_for :title, "Reconciliation · Dallah" %>
+<% r = @result %>
+
+<section class="max-w-3xl mx-auto px-6 pt-16">
+  <p class="label mb-3">Internal · finance</p>
+  <h1 class="font-display text-4xl sm:text-5xl mb-2">Reconciliation</h1>
+  <p class="text-cream/50 mb-10">Does our ledger agree with Stripe, to the halala?</p>
+
+  <!-- Verdict -->
+  <div class="card rounded-2xl p-8 rise flex items-center gap-5 <%= r.ok? ? 'border-gold/40' : 'border-red-500/50' %>">
+    <span class="grid place-items-center h-16 w-16 rounded-full text-3xl <%= r.ok? ? 'bg-gold/15 text-gold border border-gold/40' : 'bg-red-500/10 text-red-600 border border-red-500/40' %>">
+      <%= r.ok? ? "✓" : "!" %>
+    </span>
+    <div>
+      <p class="font-display text-3xl"><%= r.ok? ? "Clean" : "Drift detected" %></p>
+      <p class="text-cream/50 mt-1"><%= r.ok? ? "Ledger and Stripe agree." : "Ledger and Stripe disagree. Details below." %></p>
+    </div>
+  </div>
+
+  <!-- Metrics -->
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6">
+    <% [["Stripe payments", r.stripe_count, false],
+        ["Matched", r.matched, false],
+        ["Every entry balances", r.unbalanced_entries.empty? ? "yes" : r.unbalanced_entries.size, !r.unbalanced_entries.empty?],
+        ["Ledger sums to 0", r.global_sum_cents.zero? ? "yes" : r.global_sum_cents, !r.global_sum_cents.zero?]].each do |label, val, bad| %>
+      <div class="card rounded-xl p-5 rise">
+        <p class="label mb-2"><%= label %></p>
+        <p class="font-display text-3xl tnum <%= bad ? 'text-red-600' : 'text-cream' %>"><%= val %></p>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- Drift detail -->
+  <% unless r.ok? %>
+    <div class="mt-8 space-y-4">
+      <% if r.missing.any? %>
+        <div class="card rounded-xl p-5 border-red-500/40">
+          <p class="label text-red-600 mb-3">Missing in ledger. Stripe charged, we didn’t record it</p>
+          <% r.missing.each do |m| %>
+            <div class="flex justify-between text-sm py-1"><span class="text-cream/60 tnum"><%= m[:pi] %></span><span class="tnum"><%= money(m[:amount_cents]) %> · <%= m[:purpose] %></span></div>
+          <% end %>
+        </div>
+      <% end %>
+      <% if r.mismatched.any? %>
+        <div class="card rounded-xl p-5 border-red-500/40">
+          <p class="label text-red-600 mb-3">Amount mismatch</p>
+          <% r.mismatched.each do |m| %>
+            <div class="flex justify-between text-sm py-1"><span class="text-cream/60 tnum"><%= m[:pi] %></span><span class="tnum">Stripe <%= money(m[:stripe_cents]) %> · ledger <%= money(m[:ledger_cents]) %></span></div>
+          <% end %>
+        </div>
+      <% end %>
+      <% if r.orphans.any? %>
+        <div class="card rounded-xl p-5 border-red-500/40">
+          <p class="label text-red-600 mb-3">Orphan credits. In the ledger, with no Stripe charge</p>
+          <% r.orphans.each do |o| %>
+            <div class="flex justify-between text-sm py-1"><span class="text-cream/60 tnum"><%= o[:pi] %></span><span class="tnum"><%= money(o[:ledger_cents]) %></span></div>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+
+  <p class="text-xs text-cream/40 mt-8">Also runnable headless: <span class="text-cream/70">rails reconcile</span> (exits non-zero on drift, ready for CI).</p>
+</section>

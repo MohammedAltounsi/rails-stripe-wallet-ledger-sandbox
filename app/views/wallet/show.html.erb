@@ -1,0 +1,78 @@
+<% content_for :title, "Wallet · Dallah" %>
+
+<section class="max-w-4xl mx-auto px-6 pt-16">
+  <p class="label mb-3">Your wallet</p>
+  <h1 class="font-display text-4xl sm:text-5xl mb-10"><%= current_customer.name %>’s balance</h1>
+
+  <div class="grid lg:grid-cols-5 gap-6">
+    <!-- Balance -->
+    <div class="lg:col-span-2 card rounded-2xl p-8 rise">
+      <p class="label mb-3">Available</p>
+      <p class="font-display text-6xl text-gold tnum leading-none"><%= money(@balance_cents) %></p>
+      <p class="mt-4 text-sm text-cream/50">Prepaid balance. Spend it on any order, no card needed at checkout.</p>
+    </div>
+
+    <!-- Top up -->
+    <div class="lg:col-span-3 card rounded-2xl p-8 rise" style="animation-delay:.08s">
+      <p class="label mb-4">Top up with card</p>
+      <div class="grid grid-cols-3 gap-3 sm:gap-4">
+        <% @presets.each do |cents| %>
+          <%= button_to wallet_topup_path(amount_cents: cents), form: { data: { turbo: false } },
+                class: "group w-full aspect-[8/5] rounded-xl p-3 flex flex-col justify-between text-left border border-gold/25 hover:border-gold hover:-translate-y-0.5 hover:shadow-lg transition-all duration-200",
+                style: "background: linear-gradient(135deg,#2a201a 0%,#5b4320 58%,#9a6d1e 100%); color:#f4efe4; box-shadow:0 6px 18px -10px rgba(60,44,26,.5);" do %>
+            <span class="flex items-start justify-between">
+              <span class="text-[.55rem] uppercase tracking-[.22em]" style="color:rgba(244,239,228,.65)">SAR</span>
+              <span class="h-4 w-5 rounded-[3px]" style="background:linear-gradient(135deg,#f0d79b,#b9922f)"></span>
+            </span>
+            <span class="font-display text-2xl sm:text-3xl tnum leading-none"><%= cents / 100 %></span>
+          <% end %>
+        <% end %>
+      </div>
+
+      <div class="flex items-center gap-4 my-6">
+        <span class="h-px flex-1 bg-[rgba(244,237,225,.1)]"></span>
+        <span class="text-xs text-cream/40">or a custom amount</span>
+        <span class="h-px flex-1 bg-[rgba(244,237,225,.1)]"></span>
+      </div>
+
+      <%= form_with url: wallet_topup_path, method: :post, data: { turbo: false }, class: "flex items-center gap-3" do %>
+        <div class="flex-1 flex items-center rounded-xl border hairline px-4 focus-within:border-gold transition-colors">
+          <span class="text-cream/40 text-sm mr-2">SAR</span>
+          <input type="number" name="amount_sar" min="5" max="500" step="1" placeholder="0"
+                 class="w-full bg-transparent py-3.5 outline-none font-display text-xl tnum placeholder:text-cream/25" required>
+        </div>
+        <button class="btn-gold rounded-xl px-6 py-3.5 text-sm whitespace-nowrap">Continue →</button>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- History -->
+  <div class="flex items-center gap-4 mt-14 mb-6">
+    <span class="label whitespace-nowrap">Activity</span>
+    <span class="h-px flex-1 bg-gradient-to-r from-gold/40 to-transparent"></span>
+  </div>
+
+  <% if @postings.empty? %>
+    <p class="text-cream/50">No wallet activity yet. Top up to get started.</p>
+  <% else %>
+    <div class="card rounded-2xl divide-y divide-cream/10">
+      <% @postings.each do |posting| %>
+        <% credit = posting.amount_cents >= 0 %>
+        <div class="flex items-center justify-between p-5">
+          <div class="flex items-center gap-4 min-w-0">
+            <span class="grid place-items-center h-10 w-10 rounded-full <%= credit ? 'bg-gold/10 text-gold' : 'bg-[rgba(244,237,225,.06)] text-cream/60' %> shrink-0">
+              <%= credit ? "↓" : "↑" %>
+            </span>
+            <div class="min-w-0">
+              <p class="text-sm truncate"><%= posting.entry.memo %></p>
+              <p class="text-xs text-cream/40"><%= posting.created_at.strftime("%-d %b %Y · %H:%M") %></p>
+            </div>
+          </div>
+          <span class="font-display text-lg tnum <%= credit ? 'text-gold' : 'text-cream/70' %>">
+            <%= credit ? "+" : "−" %><%= money(posting.amount_cents.abs) %>
+          </span>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+</section>
