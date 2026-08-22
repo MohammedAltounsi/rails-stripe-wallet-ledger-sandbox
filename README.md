@@ -10,16 +10,19 @@ A double-entry payments and wallet ledger, built in Rails 8.
 ![Stripe](https://img.shields.io/badge/Stripe-test%20mode-635BFF?logo=stripe&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-informational)
 
-[Live demo](https://dallah-coffee.onrender.com) · [How it works](#how-it-works) · [Run it](#run-it)
+### [▶ Open the live demo](https://dallah-coffee.onrender.com)
+
+Stripe test mode, so no real card is charged. Pay with `4242 4242 4242 4242`, any future date, any CVC.
+
+<br>
+
+<img src="docs/screenshots/menu.png" alt="Dallah Coffee storefront" width="820">
 
 </div>
 
----
-
 A coffee-ordering app with a real money core. Customers top up a wallet, pay by
 card or from that wallet, and every halala is tracked in a double-entry ledger
-that can be checked against Stripe to the last unit. It runs in Stripe test mode,
-so no real card is ever charged. Use `4242 4242 4242 4242`, any future date, any CVC.
+that can be checked against Stripe to the last unit.
 
 ## What it does
 
@@ -31,6 +34,33 @@ so no real card is ever charged. Use `4242 4242 4242 4242`, any future date, any
 | Webhooks | Signature-verified. The wallet is credited and the order marked paid only on `payment_intent.succeeded`. | `app/controllers/webhooks/stripe_controller.rb` |
 | Wallet | Top up, then spend. The spend is row-locked, so two concurrent checkouts cannot overdraw it. | `checkout_controller.rb`, `wallet_controller.rb` |
 | Reconciliation | Compares the ledger against Stripe and reports dropped webhooks, amount mismatches, and orphan credits. | `app/services/reconciliation_service.rb` |
+
+## The exhibits
+
+The ledger and reconciliation pages are public in the demo, because they are the
+point. They show synthetic data only.
+
+<table>
+<tr>
+<td width="50%">
+<img src="docs/screenshots/ledger.png" alt="The double-entry ledger, summing to zero">
+<p align="center"><b>The ledger</b><br>Balances derived from an append-only log. The whole thing sums to zero.</p>
+</td>
+<td width="50%">
+<img src="docs/screenshots/reconciliation.png" alt="Reconciliation against Stripe">
+<p align="center"><b>Reconciliation</b><br>Ledger vs Stripe, to the halala. Runs headless in CI and exits non-zero on drift.</p>
+</td>
+</tr>
+<tr>
+<td width="50%">
+<img src="docs/screenshots/wallet.png" alt="Wallet balance and activity">
+<p align="center"><b>The wallet</b><br>Prepaid balance, credited only by a verified webhook. Every top-up and spend is a ledger posting.</p>
+</td>
+<td width="50%" valign="middle">
+<p align="center">Pay by card or straight from the wallet.<br>Either way the money lands in the same ledger, once.</p>
+</td>
+</tr>
+</table>
 
 ## How it works
 
@@ -97,6 +127,7 @@ stripe listen --forward-to localhost:3000/webhooks/stripe
 ```
 
 Open <http://localhost:3000>. See the ledger at `/ledger` and reconciliation at `/reconciliation`.
+Deployment notes are in [docs/DEPLOY.md](docs/DEPLOY.md).
 
 ## Tests
 
@@ -118,7 +149,7 @@ run on every push.
 
 ## Demo notes
 
-This is a portfolio demo, and two things are open on purpose:
+Two things are open on purpose:
 
 - Anyone can switch between the seeded customers with no login. Orders and receipts are scoped to the browser session, so one visitor never sees another's.
 - `/ledger` and `/reconciliation` are public, because they are the exhibit. They show synthetic data only.
