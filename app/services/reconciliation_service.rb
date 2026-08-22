@@ -26,10 +26,9 @@ module ReconciliationService
     end
   end
 
-  def self.run
-    stripe   = fetch_succeeded_intents                 # { pi_id => { amount:, purpose: } }
-    ledger   = ledger_entries_by_pi                    # { pi_id => Entry }
-
+  # stripe/ledger are injectable so the diff logic can be tested without the
+  # network; in production both default to the real fetchers.
+  def self.run(stripe: fetch_succeeded_intents, ledger: ledger_entries_by_pi)
     missing = []; mismatched = []; matched = 0
 
     stripe.each do |id, info|
