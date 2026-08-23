@@ -23,9 +23,6 @@ services:
       # stays flat instead of climbing to the 512 MB ceiling over time.
       - key: MALLOC_CONF
         value: narenas:2,background_thread:true,dirty_decay_ms:1000,muzzy_decay_ms:0
-      # Run the Solid Queue worker inside Puma so receipt emails (deliver_later) send.
-      - key: SOLID_QUEUE_IN_PUMA
-        value: true
       # Public host for links in receipt emails (set to your onrender.com URL, no protocol).
       - key: APP_HOST
         sync: false
