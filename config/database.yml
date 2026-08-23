@@ -6,7 +6,9 @@
 #
 default: &default
   adapter: sqlite3
-  max_connections: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+  # Floor of 5: Solid Queue (run in-Puma) needs at least 5 connections, even when
+  # the web worker runs fewer threads.
+  max_connections: <%= [ ENV.fetch("RAILS_MAX_THREADS") { 5 }.to_i, 5 ].max %>
   timeout: 5000
 
 development:
@@ -35,7 +37,7 @@ production:
   primary:
     adapter: postgresql
     url: <%= ENV["DATABASE_URL"] %>
-    pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+    pool: <%= [ ENV.fetch("RAILS_MAX_THREADS") { 5 }.to_i, 5 ].max %>
   cache:
     <<: *default
     database: storage/production_cache.sqlite3
