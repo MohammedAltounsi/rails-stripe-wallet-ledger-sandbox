@@ -51,6 +51,27 @@ class Webhooks::StripeControllerTest < ActionDispatch::IntegrationTest
     assert_equal 2200, Ledger.account(Ledger::REVENUE_ACCOUNT).balance_cents
   end
 
+  test "each event is recorded in the inbox and a redelivery is deduped" do
+    payload = succeeded_event(pi_id: "pi_inbox", amount: 5000,
+                              metadata: { customer_ref: "cust-2", purpose: "wallet_topup" })
+    post "/webhooks/stripe", params: payload, headers: signed_headers(payload)
+    post "/webhooks/stripe", params: payload, headers: signed_headers(payload)   # redelivery, same event id
+
+    assert_equal 1, StripeEvent.where(event_id: "evt_pi_inbox").count, "one inbox row per event id"
+    assert StripeEvent.find_by(event_id: "evt_pi_inbox").processed?
+    assert_equal 5000, Account.find_by!(name: "wallet:cust-2").balance_cents, "credited exactly once"
+  end
+
+  test "a non-money event is recorded and acknowledged without moving money" do
+    payload = { id: "evt_created", type: "payment_intent.created",
+                data: { object: { id: "pi_x", amount: 5000, metadata: {} } } }.to_json
+    assert_no_difference -> { Posting.count } do
+      post "/webhooks/stripe", params: payload, headers: signed_headers(payload)
+    end
+    assert_response :ok
+    assert StripeEvent.find_by(event_id: "evt_created").processed?
+  end
+
   test "a forged signature is rejected and nothing is credited" do
     payload = succeeded_event(pi_id: "pi_999", amount: 9999,
                               metadata: { customer_ref: "hacker", purpose: "wallet_topup" })

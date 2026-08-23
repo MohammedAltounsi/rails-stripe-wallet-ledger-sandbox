@@ -60,5 +60,32 @@
     </div>
   <% end %>
 
+  <div class="mt-10">
+    <p class="label text-cream/50 mb-3">Webhook inbox</p>
+    <div class="grid grid-cols-3 gap-3">
+      <div class="card rounded-xl p-5">
+        <p class="label text-cream/50">Received</p>
+        <p class="text-2xl tnum"><%= @events.values.sum %></p>
+      </div>
+      <div class="card rounded-xl p-5">
+        <p class="label text-cream/50">Processed once</p>
+        <p class="text-2xl tnum"><%= @events.fetch("processed", 0) %></p>
+      </div>
+      <div class="card rounded-xl p-5 <%= "border-red-500/40" if @events.fetch("failed", 0).positive? %>">
+        <p class="label <%= @events.fetch("failed", 0).positive? ? "text-red-600" : "text-cream/50" %>">Failed</p>
+        <p class="text-2xl tnum"><%= @events.fetch("failed", 0) %></p>
+      </div>
+    </div>
+    <% if @failed_events.any? %>
+      <div class="card rounded-xl p-5 border-red-500/40 mt-3">
+        <p class="label text-red-600 mb-3">Failed events. Stripe redelivers these; the inbox reprocesses safely</p>
+        <% @failed_events.each do |e| %>
+          <div class="flex justify-between text-sm py-1"><span class="text-cream/60 tnum"><%= e.event_id %> · <%= e.event_type %></span><span class="tnum text-cream/50"><%= e.error&.truncate(60) %></span></div>
+        <% end %>
+      </div>
+    <% end %>
+    <p class="text-xs text-cream/40 mt-3">Every Stripe event is recorded once (unique event id), so a redelivery never double-processes.</p>
+  </div>
+
   <p class="text-xs text-cream/40 mt-8">Also runnable headless: <span class="text-cream/70">rails reconcile</span> (exits non-zero on drift, ready for CI).</p>
 </section>
