@@ -13,11 +13,16 @@ services:
       # Thruster listens on the port Render routes to.
       - key: HTTP_PORT
         value: 10000
-      # One Puma worker fits the Starter instance's 512 MB.
+      # One Puma worker, 3 threads: fits the Starter instance's 512 MB without
+      # the memory creep that was OOM-killing (exit 137) a 5-thread worker.
       - key: WEB_CONCURRENCY
         value: 1
       - key: RAILS_MAX_THREADS
-        value: 5
+        value: 3
+      # jemalloc: reclaim freed pages to the OS quickly and cap arenas, so RSS
+      # stays flat instead of climbing to the 512 MB ceiling over time.
+      - key: MALLOC_CONF
+        value: narenas:2,background_thread:true,dirty_decay_ms:1000,muzzy_decay_ms:0
       # Run the Solid Queue worker inside Puma so receipt emails (deliver_later) send.
       - key: SOLID_QUEUE_IN_PUMA
         value: true
