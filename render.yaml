@@ -19,6 +19,12 @@ services:
         value: 1
       - key: RAILS_MAX_THREADS
         value: 3
+      # Solid Queue OFF. Its in-Puma supervisor pushed a 512 MB instance over the
+      # memory limit (OOM, exit 137); receipt emails use the :async adapter now.
+      # Set to "false" (not removed) so a blueprint sync updates the stored value;
+      # removing the key would leave the old "true" in place.
+      - key: SOLID_QUEUE_IN_PUMA
+        value: false
       # jemalloc: reclaim freed pages to the OS quickly and cap arenas, so RSS
       # stays flat instead of climbing to the 512 MB ceiling over time.
       - key: MALLOC_CONF
