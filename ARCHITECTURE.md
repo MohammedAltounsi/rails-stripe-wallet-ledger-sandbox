@@ -49,11 +49,28 @@ arrives.
   that means "Stripe actually took the money".
 - **Trade-off:** the UI has to treat an order as pending until the webhook lands,
   so there is a short window between payment and confirmation.
-- **At scale:** the webhook handler should record the raw event in a
-  `processed_stripe_events` table (see #4) and enqueue the booking as a job, so a
-  slow ledger write never times out Stripe's delivery and retries stay cheap.
+- **How redelivery is handled:** every event is recorded once in a webhook inbox
+  (see #3). A redelivery of an already-processed event returns 200 without
+  touching money; a processing failure is recorded and returns 500 so Stripe
+  retries, and the retry reprocesses safely.
 
-### 3. Idempotency is enforced at the database, not just checked in code
+### 3. Webhooks are exactly-once via an inbox
+
+Every Stripe event is written to a `stripe_events` inbox, deduped on a unique
+`event_id`. The handler processes an event only if its inbox row is not already
+`processed`; on success it marks it processed, on failure it marks it failed and
+returns 500 so Stripe redelivers.
+
+- **Why:** Stripe delivers at-least-once. Deduping only on the PaymentIntent
+  covers money, but not other events, and gives no audit trail. The inbox makes
+  every event exactly-once, records what arrived, and turns a failed event into
+  something a retry can heal instead of a lost message.
+- **Two layers:** the inbox dedupes at the event level; `Ledger.post!` (see #4)
+  dedupes the money at the posting level. Either alone is safe; together they
+  survive a crash between recording the event and booking the money.
+- **Trade-off:** an extra write per event. Negligible next to the safety.
+
+### 4. Idempotency is enforced at the database, not just checked in code
 
 `Ledger.post!(memo, lines, key:)` takes an idempotency key. The key has a unique
 index. Posting does a fast-path check, then relies on the index and a
@@ -67,7 +84,7 @@ index. Posting does a fast-path check, then relies on the index and a
   is `stripe-pi:<payment_intent_id>`, which is naturally unique per charge.
 - **At scale:** unchanged. This is the pattern; it holds under real concurrency.
 
-### 4. The wallet spend is locked twice
+### 5. The wallet spend is locked twice
 
 Spending wallet balance runs inside one transaction that first row-locks the
 wallet account (`SELECT ... FOR UPDATE` via `lock!`), re-reads the balance,
@@ -85,7 +102,7 @@ balance that would go negative at commit.
   contend. If a single wallet ever needed high write throughput, the next step is
   batching or a command queue per wallet, not a coarser lock.
 
-### 5. Money is integer minor units
+### 6. Money is integer minor units
 
 Every amount is an integer count of halalas (1 SAR = 100 halalas). There are no
 floats in the money path; the only division by 100 is display formatting.
@@ -94,7 +111,7 @@ floats in the money path; the only division by 100 is display formatting.
   it accumulates rounding error. Integer minor units are exact.
 - **Trade-off:** none worth mentioning. This is the standard for money.
 
-### 6. Reconciliation is a first-class feature
+### 7. Reconciliation is a first-class feature
 
 `ReconciliationService` compares the ledger against Stripe's list of succeeded
 intents and reports four failure modes: a charge Stripe made that the ledger
@@ -108,7 +125,7 @@ exits non-zero on drift so CI or a cron can page on it.
 - **At scale:** run it continuously against a rolling window instead of listing
   all intents, store each run's result, and alert on the first non-zero drift.
 
-### 7. No login, session-scoped visibility (demo only)
+### 8. No login, session-scoped visibility (demo only)
 
 Anyone can act as a seeded customer with no sign-in, so the payment flows are
 easy to try. Orders and receipts are scoped to `session[:order_ids]`, so one
@@ -122,8 +139,8 @@ visitor never sees another's order (the one place a real email lives).
 
 ## What I would add for production
 
-- A `processed_stripe_events` table keyed by event id, so every webhook (not just
-  money events) is deduped and auditable, with booking done in a background job.
+- Move webhook booking into a background job off the inbox row, so a slow ledger
+  write never times out Stripe's delivery (the inbox itself is already built, #3).
 - A cached balance projection updated in the posting transaction, reconciled
   against the log (see #1).
 - Continuous reconciliation over a rolling window with alerting, instead of an
@@ -138,8 +155,9 @@ The suite proves the invariants rather than the happy path:
 
 - `ledger_test` and `idempotency_test`: entries must balance, and a repeated key
   moves money once.
-- `webhooks/stripe_controller_test`: a forged signature is rejected, and a
-  redelivered event does not double-book.
+- `webhooks/stripe_controller_test` and `stripe_event_test`: a forged signature
+  is rejected, every event is recorded once, a redelivery does not double-book,
+  and a failed event stays reprocessable.
 - `wallet_checkout_test` and `wallet_concurrency_test`: the locked spend debits
   the right amount, and two concurrent spends cannot overdraw (the concurrency
   and trigger tests run on Postgres, where the lock and trigger are real).

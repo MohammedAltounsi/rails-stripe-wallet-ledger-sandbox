@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_22_150000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_23_060000) do
   create_table "accounts", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "name", null: false
@@ -98,6 +98,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_22_150000) do
     t.string "tagline_ar"
     t.string "temperature", default: "both", null: false
     t.datetime "updated_at", null: false
+  end
+
+  create_table "stripe_events", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.text "error"
+    t.string "event_id", null: false
+    t.string "event_type", null: false
+    t.text "payload"
+    t.datetime "processed_at"
+    t.string "status", default: "received", null: false
+    t.datetime "updated_at", null: false
+    t.index ["event_id"], name: "index_stripe_events_on_event_id", unique: true
   end
 
   add_foreign_key "order_items", "orders"
