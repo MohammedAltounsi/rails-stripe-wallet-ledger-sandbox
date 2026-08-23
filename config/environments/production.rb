@@ -46,9 +46,13 @@ Rails.application.configure do
   # Replace the default in-process memory cache store with a durable alternative.
   config.cache_store = :solid_cache_store
 
-  # Replace the default in-process and non-durable queuing backend for Active Job.
-  config.active_job.queue_adapter = :solid_queue
-  config.solid_queue.connects_to = { database: { writing: :queue } }
+  # Receipt emails send on Active Job's lightweight in-process async pool. Solid
+  # Queue's in-Puma supervisor (dispatcher + worker threads + its own DB pool)
+  # pushed a single 512 MB instance over its memory limit, so it was OOM-killed
+  # on a cycle. For a demo, an occasional email lost on restart is an acceptable
+  # trade for staying up; a production build would run Solid Queue as its own
+  # worker service instead.
+  config.active_job.queue_adapter = :async
 
   # A mail hiccup must never fail a paid order or a webhook.
   config.action_mailer.raise_delivery_errors = false
