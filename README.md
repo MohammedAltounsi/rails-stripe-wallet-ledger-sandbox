@@ -85,6 +85,7 @@ transaction. The rules it enforces:
 5. Postgres has the final say. A deferred trigger rejects any unbalanced entry or negative wallet balance, even if the app has a bug.
 
 For the reasoning behind each decision and what would change at scale, see [ARCHITECTURE.md](ARCHITECTURE.md).
+For what to do when reconciliation reports drift, see [RUNBOOK.md](RUNBOOK.md).
 
 ## Paying by card
 
