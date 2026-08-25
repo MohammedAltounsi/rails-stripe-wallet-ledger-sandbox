@@ -49,4 +49,16 @@ class ReconciliationServiceTest < ActiveSupport::TestCase
     assert_includes result.orphans.map { |o| o[:pi] }, "pi_orphan"
     refute result.ok?, "missing, mismatch, or orphan must fail reconciliation"
   end
+
+  test "when Stripe is unreachable it does not flag every ledger entry as an orphan" do
+    book("pi_real", 5000)   # a real, correctly-booked credit
+
+    result = ReconciliationService.run(stripe: {}, reachable: false)
+
+    assert result.unreachable?, "should report the Stripe outage"
+    refute result.ok?, "an unchecked run is not 'clean'"
+    assert_empty result.orphans, "must NOT call a real entry an orphan just because Stripe was down"
+    assert_empty result.missing
+    assert result.invariants_hold?, "internal invariants are still checked"
+  end
 end

@@ -10,7 +10,11 @@ class ReconciliationJob < ApplicationJob
 
   def perform
     r = ReconciliationService.run
-    if r.ok?
+    ReconciliationRun.record(r)   # persist a timeline of every run
+
+    if r.unreachable?
+      Rails.logger.warn("[reconcile] UNREACHABLE — Stripe down, diff skipped; invariants #{r.invariants_hold? ? 'hold' : 'FAILED'}")
+    elsif r.ok?
       Rails.logger.info("[reconcile] OK — #{r.matched} Stripe payments match the ledger, books sum to zero.")
     else
       Rails.logger.error(

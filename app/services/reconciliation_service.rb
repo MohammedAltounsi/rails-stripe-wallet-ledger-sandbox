@@ -17,20 +17,47 @@ module ReconciliationService
 
   Result = Struct.new(
     :stripe_count, :matched, :missing, :mismatched, :orphans,
-    :unbalanced_entries, :global_sum_cents,
+    :unbalanced_entries, :global_sum_cents, :reachable,
     keyword_init: true
   ) do
-    def ok?
-      missing.empty? && mismatched.empty? && orphans.empty? &&
-        unbalanced_entries.empty? && global_sum_cents.zero?
-    end
+    # Could not reach Stripe, so the ledger-vs-Stripe diff was skipped. The
+    # internal invariants below were still checked.
+    def unreachable? = !reachable
+
+    # The two checks that need no network: every entry balances, and the whole
+    # book sums to zero. These hold (or fail) whether or not Stripe is up.
+    def invariants_hold? = unbalanced_entries.empty? && global_sum_cents.zero?
+
+    # Clean means we actually checked against Stripe and found no drift. An
+    # unreachable run is not clean and not drift — it is "not checked yet".
+    def ok? = reachable && missing.empty? && mismatched.empty? && orphans.empty? && invariants_hold?
   end
 
   # stripe/ledger are injectable so the diff logic can be tested without the
-  # network; in production both default to the real fetchers.
-  def self.run(stripe: fetch_succeeded_intents, ledger: ledger_entries_by_pi)
-    missing = []; mismatched = []; matched = 0
+  # network; in production stripe comes from the reachability-aware fetcher. An
+  # injected stripe hash is treated as reachable unless reachable: is given.
+  def self.run(stripe: nil, reachable: nil, ledger: ledger_entries_by_pi)
+    if stripe.nil?
+      fetched   = fetch_succeeded_intents
+      stripe    = fetched[:intents]
+      reachable = fetched[:reachable]
+    end
+    reachable = true if reachable.nil?
 
+    unbalanced = Entry.all.reject { |e| e.postings.sum(&:amount_cents).zero? }.map(&:id)
+    global_sum = Posting.sum(:amount_cents)
+
+    # Stripe is down: DO NOT diff. A missing or partial Stripe list would mark
+    # every real ledger entry an "orphan" (money from nowhere) — a false-alarm
+    # storm. Report the internal invariants and that the match could not run.
+    unless reachable
+      return Result.new(
+        stripe_count: 0, matched: 0, missing: [], mismatched: [], orphans: [],
+        unbalanced_entries: unbalanced, global_sum_cents: global_sum, reachable: false
+      )
+    end
+
+    missing = []; mismatched = []; matched = 0
     stripe.each do |id, info|
       next unless PURPOSES.include?(info[:purpose])
       entry = ledger[id]
@@ -53,8 +80,9 @@ module ReconciliationService
       missing:            missing,
       mismatched:         mismatched,
       orphans:            orphans,
-      unbalanced_entries: Entry.all.reject { |e| e.postings.sum(&:amount_cents).zero? }.map(&:id),
-      global_sum_cents:   Posting.sum(:amount_cents)
+      unbalanced_entries: unbalanced,
+      global_sum_cents:   global_sum,
+      reachable:          true
     )
   end
 
@@ -69,15 +97,18 @@ module ReconciliationService
     end
   end
 
+  # Returns { intents:, reachable: }. reachable is false when Stripe could not be
+  # reached, so run can skip the diff instead of treating an empty list as "every
+  # ledger entry is an orphan".
   def self.fetch_succeeded_intents
     out = {}
     Stripe::PaymentIntent.list(limit: 100).auto_paging_each do |pi|
       next unless pi.status == "succeeded"
       out[pi.id] = { amount: pi.amount, purpose: pi.metadata["purpose"] }
     end
-    out
+    { intents: out, reachable: true }
   rescue Stripe::StripeError => e
     Rails.logger.warn("Reconciliation: could not reach Stripe: #{e.message}")
-    out
+    { intents: {}, reachable: false }
   end
 end

@@ -6,16 +6,26 @@
   <h1 class="font-display text-4xl sm:text-5xl mb-2">Reconciliation</h1>
   <p class="text-cream/50 mb-10">Does our ledger agree with Stripe, to the halala?</p>
 
-  <!-- Verdict -->
-  <div class="card rounded-2xl p-8 rise flex items-center gap-5 <%= r.ok? ? 'border-gold/40' : 'border-red-500/50' %>">
-    <span class="grid place-items-center h-16 w-16 rounded-full text-3xl <%= r.ok? ? 'bg-gold/15 text-gold border border-gold/40' : 'bg-red-500/10 text-red-600 border border-red-500/40' %>">
-      <%= r.ok? ? "✓" : "!" %>
-    </span>
-    <div>
-      <p class="font-display text-3xl"><%= r.ok? ? "Clean" : "Drift detected" %></p>
-      <p class="text-cream/50 mt-1"><%= r.ok? ? "Ledger and Stripe agree." : "Ledger and Stripe disagree. Details below." %></p>
+  <!-- Verdict: clean, drift, or (Stripe down) unreachable -->
+  <% if r.unreachable? %>
+    <div class="card rounded-2xl p-8 rise flex items-center gap-5 border-cream/20">
+      <span class="grid place-items-center h-16 w-16 rounded-full text-3xl bg-cream/10 text-cream/70 border border-cream/25">…</span>
+      <div>
+        <p class="font-display text-3xl">Stripe unreachable</p>
+        <p class="text-cream/50 mt-1">Could not reach Stripe, so the ledger match was skipped. Internal invariants <%= r.invariants_hold? ? "still hold." : "FAILED — see below." %></p>
+      </div>
     </div>
-  </div>
+  <% else %>
+    <div class="card rounded-2xl p-8 rise flex items-center gap-5 <%= r.ok? ? 'border-gold/40' : 'border-red-500/50' %>">
+      <span class="grid place-items-center h-16 w-16 rounded-full text-3xl <%= r.ok? ? 'bg-gold/15 text-gold border border-gold/40' : 'bg-red-500/10 text-red-600 border border-red-500/40' %>">
+        <%= r.ok? ? "✓" : "!" %>
+      </span>
+      <div>
+        <p class="font-display text-3xl"><%= r.ok? ? "Clean" : "Drift detected" %></p>
+        <p class="text-cream/50 mt-1"><%= r.ok? ? "Ledger and Stripe agree." : "Ledger and Stripe disagree. Details below." %></p>
+      </div>
+    </div>
+  <% end %>
 
   <!-- Metrics -->
   <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6">
@@ -30,8 +40,8 @@
     <% end %>
   </div>
 
-  <!-- Drift detail -->
-  <% unless r.ok? %>
+  <!-- Drift detail (only when we actually checked and found drift) -->
+  <% if !r.ok? && !r.unreachable? %>
     <div class="mt-8 space-y-4">
       <% if r.missing.any? %>
         <div class="card rounded-xl p-5 border-red-500/40">
@@ -57,6 +67,34 @@
           <% end %>
         </div>
       <% end %>
+    </div>
+  <% end %>
+
+  <% if @recent_runs.any? %>
+    <div class="mt-10">
+      <p class="label text-cream/50 mb-3">Reconciliation history</p>
+      <p class="text-xs text-cream/40 mb-3">Every run is stored, so drift has a timeline.</p>
+      <div class="card rounded-xl p-5 overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead><tr class="text-cream/40 text-left">
+            <th class="font-normal pb-2">When</th><th class="font-normal pb-2">Status</th>
+            <th class="font-normal pb-2 text-right">Matched</th><th class="font-normal pb-2 text-right">Missing</th>
+            <th class="font-normal pb-2 text-right">Mismatch</th><th class="font-normal pb-2 text-right">Orphan</th>
+          </tr></thead>
+          <tbody>
+            <% @recent_runs.each do |run| %>
+              <tr class="border-t border-cream/10">
+                <td class="py-2 text-cream/60 tnum"><%= run.created_at.strftime("%b %-d · %H:%M") %></td>
+                <td class="py-2 <%= run.clean? ? 'text-gold' : run.unreachable? ? 'text-cream/60' : 'text-red-600' %>"><%= run.status %></td>
+                <td class="py-2 text-right tnum"><%= run.matched %></td>
+                <td class="py-2 text-right tnum <%= run.missing_count.positive? ? 'text-red-600' : 'text-cream/40' %>"><%= run.missing_count %></td>
+                <td class="py-2 text-right tnum <%= run.mismatched_count.positive? ? 'text-red-600' : 'text-cream/40' %>"><%= run.mismatched_count %></td>
+                <td class="py-2 text-right tnum <%= run.orphan_count.positive? ? 'text-red-600' : 'text-cream/40' %>"><%= run.orphan_count %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
     </div>
   <% end %>
 
