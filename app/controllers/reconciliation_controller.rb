@@ -8,5 +8,6 @@ class ReconciliationController < ApplicationController
     # Webhook inbox health: a cheap DB read, so no need to cache it.
     @events        = StripeEvent.group(:status).count      # { "processed" => n, "failed" => n, ... }
     @failed_events = StripeEvent.failed.order(created_at: :desc).limit(10)
+    @recent_runs   = ReconciliationRun.recent.limit(10)
   end
 end

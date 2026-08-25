@@ -2,6 +2,19 @@ desc "Reconcile the ledger against Stripe; exits non-zero on any drift (CI-frien
 task reconcile: :environment do
   r = ReconciliationService.run
 
+  if r.unreachable?
+    puts ""
+    puts "  DALLAH — LEDGER RECONCILIATION"
+    puts "  " + ("─" * 46)
+    puts "  Stripe unreachable — could not match the ledger against Stripe."
+    puts "  Internal invariants: #{r.invariants_hold? ? 'hold' : 'FAILED'}"
+    puts "  " + ("─" * 46)
+    puts ""
+    # Exit 2 (not 1): "could not check", distinct from a real drift, so CI can
+    # treat a Stripe outage differently from a ledger discrepancy.
+    exit(r.invariants_hold? ? 2 : 1)
+  end
+
   puts ""
   puts "  DALLAH — LEDGER RECONCILIATION"
   puts "  " + ("─" * 46)

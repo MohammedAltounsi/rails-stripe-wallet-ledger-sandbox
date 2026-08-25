@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_23_060000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_25_120000) do
   create_table "accounts", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "name", null: false
@@ -97,6 +97,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_23_060000) do
     t.string "tagline"
     t.string "tagline_ar"
     t.string "temperature", default: "both", null: false
+    t.datetime "updated_at", null: false
+  end
+
+  create_table "reconciliation_runs", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.integer "global_sum_cents", default: 0, null: false
+    t.integer "matched", default: 0, null: false
+    t.integer "mismatched_count", default: 0, null: false
+    t.integer "missing_count", default: 0, null: false
+    t.integer "orphan_count", default: 0, null: false
+    t.string "status", null: false
+    t.integer "stripe_count", default: 0, null: false
     t.datetime "updated_at", null: false
   end
 
