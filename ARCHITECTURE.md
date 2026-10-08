@@ -17,34 +17,34 @@ Entry "wallet topup pi_123"
                              0   <- every entry must sum to zero
 ```
 
-That one rule (postings sum to zero, per entry and across the whole ledger)
-is what makes the system auditable: if the global sum is ever non-zero, money
-was created or destroyed, and reconciliation says so.
+Postings sum to zero in each entry and across the whole ledger. If the
+global sum is ever non-zero, money was created or lost somewhere, and
+reconciliation reports it.
 
 ## Decisions and trade-offs
 
-### 1. Balances are derived, never stored
+### 1. Balances are computed from postings
 
 `Account#balance_cents` sums the postings every time. There is no
 `balance` column to update.
 
-- **Why:** a stored balance is a second source of truth. The moment an update
-  is missed, retried, or races another write, it disagrees with the postings
-  and you cannot tell which is right. Deriving the balance means it cannot drift
-  by construction.
+- **Why:** a stored balance is a second copy of the data. If an update is
+  missed, retried, or races another write, it disagrees with the postings and
+  you can't tell which one is right. A balance computed from the postings
+  can't drift.
 - **Trade-off:** reads cost a `SUM` instead of a column lookup.
 - **At scale:** keep the append-only log as the source of truth, add a cached
   balance as a materialized projection (a `balances` table updated in the same
   transaction, or a periodic rollup), and reconcile the cache against the log.
-  The log stays authoritative; the cache is only an optimization.
+  The log stays the source of truth, and the cache only speeds up reads.
 
-### 2. Money is booked on the webhook, never on intent creation
+### 2. Money is booked when the webhook arrives
 
 Creating a Stripe `PaymentIntent` moves nothing in the ledger. The ledger entry
 is written only when a signature-verified `payment_intent.succeeded` webhook
 arrives.
 
-- **Why:** the intent is a request, not a fact. Booking at creation would credit
+- **Why:** an intent is only a request to charge. Booking at creation would credit
   money for payments that were never completed. The webhook is the only event
   that means "Stripe actually took the money".
 - **Trade-off:** the UI has to treat an order as pending until the webhook lands,
@@ -62,15 +62,15 @@ Every Stripe event is written to a `stripe_events` inbox, deduped on a unique
 returns 500 so Stripe redelivers.
 
 - **Why:** Stripe delivers at-least-once. Deduping only on the PaymentIntent
-  covers money, but not other events, and gives no audit trail. The inbox makes
-  every event exactly-once, records what arrived, and turns a failed event into
-  something a retry can heal instead of a lost message.
+  covers money, but not other events, and leaves no audit trail. The inbox
+  processes each event once, records what arrived, and keeps a failed event so
+  a retry can process it again.
 - **Two layers:** the inbox dedupes at the event level; `Ledger.post!` (see #4)
   dedupes the money at the posting level. Either alone is safe; together they
   survive a crash between recording the event and booking the money.
-- **Trade-off:** an extra write per event. Negligible next to the safety.
+- **Trade-off:** one extra write per event, which is cheap.
 
-### 4. Idempotency is enforced at the database, not just checked in code
+### 4. Idempotency is enforced by a unique index
 
 `Ledger.post!(memo, lines, key:)` takes an idempotency key. The key has a unique
 index. Posting does a fast-path check, then relies on the index and a
@@ -82,7 +82,7 @@ index. Posting does a fast-path check, then relies on the index and a
   the winner's entry. Money moves once.
 - **Trade-off:** the caller has to choose a stable key. For Stripe events the key
   is `stripe-pi:<payment_intent_id>`, which is naturally unique per charge.
-- **At scale:** unchanged. This is the pattern; it holds under real concurrency.
+- **At scale:** unchanged. This works under real concurrency.
 
 ### 5. The wallet spend is locked twice
 
@@ -93,8 +93,8 @@ balance that would go negative at commit.
 
 - **Why:** without the lock, two concurrent checkouts both read the old balance,
   both pass the "enough funds?" check, and both debit (a time-of-check to
-  time-of-use overdraw). The lock serializes them. The trigger is defense in
-  depth: even if an application bug skips the check, the database refuses to
+  time-of-use overdraw). The lock serializes them. The trigger is a second
+  check: if an application bug skips the lock, the database still refuses to
   commit a negative wallet.
 - **Trade-off:** a global-per-wallet lock serializes that one wallet's spends.
   That is correct and, for one customer's own actions, not a throughput problem.
@@ -109,9 +109,9 @@ floats in the money path; the only division by 100 is display formatting.
 
 - **Why:** floating point cannot represent most decimal money values exactly, so
   it accumulates rounding error. Integer minor units are exact.
-- **Trade-off:** none worth mentioning. This is the standard for money.
+- **Trade-off:** none. This is standard practice for money.
 
-### 7. Reconciliation is a first-class feature
+### 7. Reconciliation is built in
 
 `ReconciliationService` compares the ledger against Stripe's list of succeeded
 intents and reports four failure modes: a charge Stripe made that the ledger
@@ -120,8 +120,8 @@ no matching charge (money from nowhere), and any entry or the global sum that
 fails to balance. It runs on a page and headless via `rails reconcile`, which
 exits non-zero on drift so CI or a cron can page on it.
 
-- **Why:** webhooks get dropped and code has bugs. A ledger you cannot check
-  against the payment processor is a ledger you have to trust blindly.
+- **Why:** webhooks get dropped and code has bugs. Without a check against
+  Stripe, there is no way to know when the ledger is wrong.
 - **At scale:** run it continuously against a rolling window instead of listing
   all intents, store each run's result, and alert on the first non-zero drift.
 
@@ -131,8 +131,8 @@ Anyone can act as a seeded customer with no sign-in, so the payment flows are
 easy to try. Orders and receipts are scoped to `session[:order_ids]`, so one
 visitor never sees another's order (the one place a real email lives).
 
-- **Why:** the goal is to show the money core, not an auth system. Removing login
-  removes friction for a reviewer.
+- **Why:** the demo is meant to show the payment code. Without a login,
+  someone reviewing it can try the flows right away.
 - **Production would differ:** real authentication and authorization, per-user
   accounts, and the ledger and reconciliation pages behind an admin role instead
   of public.
@@ -151,7 +151,7 @@ visitor never sees another's order (the one place a real email lives).
 
 ## Testing
 
-The suite proves the invariants rather than the happy path:
+The suite tests the invariants and the failure cases:
 
 - `ledger_test` and `idempotency_test`: entries must balance, and a repeated key
   moves money once.

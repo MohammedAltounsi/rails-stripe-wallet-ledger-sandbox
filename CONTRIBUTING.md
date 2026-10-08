@@ -1,10 +1,9 @@
 # Contributing
 
-This is a solo portfolio project, not a community-maintained gem, so there's
-no roadmap and no expectation of external contributors. That said, if
-something here is genuinely wrong, a fix is welcome. This document is mostly
-for that case, and for anyone (an interviewer included) who wants to run the
-suite and poke at the code.
+This is a solo portfolio project. There's no roadmap and I don't expect
+outside contributors, but if you find something wrong, a fix is welcome. This
+file covers that case, and how to run the test suite if you want to read the
+code.
 
 ## Setup
 
@@ -36,10 +35,9 @@ bin/bundler-audit check
 The test suite runs on SQLite locally and skips the tests that only make
 sense on PostgreSQL (`wallet_concurrency_test.rb`): the wallet-overdraft
 database trigger and the two-concurrent-spends race. CI runs the full suite
-on Postgres, so those are actually exercised there, not just assumed
-correct.
+on Postgres, so those tests run there.
 
-## The one real rule: money paths get a test
+## Money paths get a test
 
 Any change to `Ledger`, `Account`, `Entry`, `Customer`'s wallet methods, the
 checkout flow, or the webhook controller has to ship with a test that would
@@ -51,6 +49,5 @@ reintroduce the bug it was written to close.
 
 ## Pull requests
 
-Keep them scoped to one change. Describe what invariant the change protects
-or fixes, not just what the diff does; that's the part a reviewer actually
-needs to evaluate it.
+Keep each one to a single change. Say which invariant the change protects or
+fixes. A reviewer needs that to judge it.

@@ -1,8 +1,8 @@
 # Runbook
 
 What to do when `/reconciliation` or the webhook inbox reports a problem.
-This is the operational counterpart to [ARCHITECTURE.md](ARCHITECTURE.md),
-written for whoever is on call, not whoever is reading the code.
+[ARCHITECTURE.md](ARCHITECTURE.md) explains the design. This file is for
+whoever is on call.
 
 ## "Reconciliation shows drift"
 
@@ -34,7 +34,7 @@ straight from the PaymentIntent). For a card order, `settle_order` already
 guards this at the source: if `pi.amount != order.total_cents`, it logs an
 error and deliberately books nothing, leaving the order `pending` rather
 than recording the wrong revenue. If reconciliation later reports a
-mismatch anyway, treat it as a data integrity incident, not routine drift:
+mismatch anyway, treat it as a data integrity incident:
 
 1. Pull the `Entry` for `stripe-pi:<id>` and the Stripe PaymentIntent side by
    side.
@@ -44,8 +44,8 @@ mismatch anyway, treat it as a data integrity incident, not routine drift:
 
 ### Orphan: a ledger credit with no matching Stripe charge
 
-The scary one: money appeared in a wallet with nothing on Stripe's side to
-back it. Treat as a security incident first, bug second:
+Money appeared in a wallet with nothing on Stripe's side to back it. Treat
+it as a security incident first and a bug second:
 
 1. Check the `Entry`'s `idempotency_key`. If it isn't shaped like
    `stripe-pi:pi_...`, something posted to the ledger outside the normal
@@ -55,7 +55,7 @@ back it. Treat as a security incident first, bug second:
 
 ## "An order is stuck `pending` with a card payment"
 
-This is the amount-mismatch guard in `settle_order` doing its job: the
+This is the amount-mismatch guard in `settle_order`. The
 webhook arrived, but `pi.amount` didn't match `order.total_cents`, so it
 refused to auto-settle rather than record the wrong revenue. Check the log
 line it leaves (`settle_order amount mismatch: ...`), compare the two
@@ -65,7 +65,7 @@ load and payment; it should not happen from a stable menu.
 
 ## "The wallet-overdraft trigger rejected a commit"
 
-This is the system working. It means app code (a bug, or a direct console
+The trigger is doing what it should. It means app code (a bug, or a direct console
 `Ledger.post!`) tried to commit a wallet balance below zero. Read the
 `ActiveRecord::StatementInvalid` message; it names the wallet and the
 balance. Do not disable or loosen the trigger to unblock it; fix the caller.
