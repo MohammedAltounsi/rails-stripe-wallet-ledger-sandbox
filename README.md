@@ -1,22 +1,22 @@
 <div align="center">
 
-# Dallah Coffee
-
-A double-entry payments and wallet ledger, built in Rails 8.
-
-[![CI](https://github.com/MohammedAltounsi/rails-stripe-wallet-ledger-sandbox/actions/workflows/ci.yml/badge.svg)](https://github.com/MohammedAltounsi/rails-stripe-wallet-ledger-sandbox/actions/workflows/ci.yml)
-![Ruby](https://img.shields.io/badge/Ruby-4.0-CC342D?logo=ruby&logoColor=white)
-![Rails](https://img.shields.io/badge/Rails-8.1-CC0000?logo=rubyonrails&logoColor=white)
-![Stripe](https://img.shields.io/badge/Stripe-test%20mode-635BFF?logo=stripe&logoColor=white)
-![License](https://img.shields.io/badge/License-MIT-informational)
-
-### [▶ Open the live demo](https://dallah-coffee.onrender.com)
-
-Stripe test mode, so no real card is charged. Pay with `4242 4242 4242 4242`, any future date, any CVC.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/readme/hero-dark.svg">
+  <img src="assets/readme/hero-light.svg" width="100%" alt="Dallah Coffee: a double-entry payments and wallet ledger in Rails 8. Two real ledger entries from the live demo cancel out, and every balance sums to SAR 0.00.">
+</picture>
 
 <br>
 
-<img src="docs/screenshots/menu.png" alt="Dallah Coffee storefront" width="820">
+[![CI](https://github.com/MohammedAltounsi/rails-stripe-wallet-ledger-sandbox/actions/workflows/ci.yml/badge.svg)](https://github.com/MohammedAltounsi/rails-stripe-wallet-ledger-sandbox/actions/workflows/ci.yml) ![Ruby](https://img.shields.io/badge/Ruby-4.0-CC342D?logo=ruby&logoColor=white) ![Rails](https://img.shields.io/badge/Rails-8.1-CC0000?logo=rubyonrails&logoColor=white) ![Stripe](https://img.shields.io/badge/Stripe-test%20mode-635BFF?logo=stripe&logoColor=white) ![License](https://img.shields.io/badge/License-MIT-informational)
+
+### [Open the live demo](https://dallah-coffee.onrender.com) · [See the ledger](https://dallah-coffee.onrender.com/ledger) · [See reconciliation](https://dallah-coffee.onrender.com/reconciliation)
+
+Stripe test mode, so no real card is charged. Pay with `4242 4242 4242 4242`, any future date, any CVC.<br>
+The demo runs on Render's free tier and can take up to a minute to wake.
+
+<br>
+
+<img src="docs/screenshots/menu.png" alt="Dallah Coffee storefront: order ahead, pay by card or from the Dallah Card wallet" width="820">
 
 </div>
 
@@ -26,14 +26,12 @@ that can be checked against Stripe to the last unit.
 
 ## What it does
 
-| Area | What happens | Where |
-|---|---|---|
-| Double-entry ledger | Every entry's postings sum to zero. Balances are summed from an append-only log, never stored, so they cannot drift. | `app/models/ledger.rb`, `account.rb` |
-| Idempotency | A retried request or a redelivered webhook moves money once, enforced by an idempotency key and a unique index. | `Ledger.post!` |
-| Stripe payments | Card charges via PaymentIntents and the embedded Payment Element. | `app/models/stripe_gateway.rb` |
-| Webhooks | Signature-verified. The wallet is credited and the order marked paid only on `payment_intent.succeeded`. | `app/controllers/webhooks/stripe_controller.rb` |
-| Wallet | Top up, then spend. The spend is row-locked, so two concurrent checkouts cannot overdraw it. | `checkout_controller.rb`, `wallet_controller.rb` |
-| Reconciliation | Compares the ledger against Stripe and reports dropped webhooks, amount mismatches, and orphan credits. | `app/services/reconciliation_service.rb` |
+- **Double-entry ledger.** Every entry's postings sum to zero. Balances are summed from an append-only log, never stored, so they cannot drift. (`app/models/ledger.rb`, `account.rb`)
+- **Idempotency.** A retried request or a redelivered webhook moves money once, enforced by an idempotency key and a unique index. (`Ledger.post!`)
+- **Stripe payments.** Card charges via PaymentIntents and the embedded Payment Element. (`app/models/stripe_gateway.rb`)
+- **Webhooks.** Signature-verified. The wallet is credited and the order marked paid only on `payment_intent.succeeded`. (`app/controllers/webhooks/stripe_controller.rb`)
+- **Wallet.** Top up, then spend. The spend is row-locked, so two concurrent checkouts cannot overdraw it. (`checkout_controller.rb`, `wallet_controller.rb`)
+- **Reconciliation.** Compares the ledger against Stripe and reports dropped webhooks, amount mismatches, and orphan credits. (`app/services/reconciliation_service.rb`)
 
 ## The exhibits
 
@@ -87,7 +85,8 @@ transaction. The rules it enforces:
 For the reasoning behind each decision and what would change at scale, see [ARCHITECTURE.md](ARCHITECTURE.md).
 For what to do when reconciliation reports drift, see [RUNBOOK.md](RUNBOOK.md).
 
-## Paying by card
+<details>
+<summary><b>Paying by card, step by step</b></summary>
 
 ```mermaid
 sequenceDiagram
@@ -104,6 +103,8 @@ sequenceDiagram
     App->>Ledger: post! (idempotent), book the money now
     App-->>Cust: Order marked paid
 ```
+
+</details>
 
 ## Run it
 
@@ -142,7 +143,8 @@ Covers the ledger invariants, idempotent crediting, webhook signature checks, an
 the locked wallet spend (no overdraft, no double-spend). Brakeman and bundler-audit
 run on every push.
 
-## Security
+<details>
+<summary><b>Security</b></summary>
 
 - Webhooks are signature-verified before any money moves.
 - Content Security Policy with per-request script nonces, `force_ssl` with HSTS, and a host allowlist.
@@ -150,14 +152,17 @@ run on every push.
 - All secrets come from environment variables; the credentials key is never committed.
 - Brakeman and bundler-audit gate every push in CI.
 
-## Demo notes
+</details>
 
-Two things are open on purpose:
+<details>
+<summary><b>Demo notes: what is open on purpose</b></summary>
 
 - Anyone can switch between the seeded customers with no login. Orders and receipts are scoped to the browser session, so one visitor never sees another's.
 - `/ledger` and `/reconciliation` are public, because they are the exhibit. They show synthetic data only.
 
 Both are safe under two rules: Stripe stays in test mode, and the seed data stays fictional.
+
+</details>
 
 ## Author
 
